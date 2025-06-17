@@ -24,6 +24,7 @@ type Comment = {
   videoUrl?: string;
   author: string; 
   parentId?: string;
+  userType: "guest" | "registered" | "pro";
 };
 
 type AppUser = {
