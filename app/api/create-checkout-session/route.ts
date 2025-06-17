@@ -18,7 +18,7 @@ const finalPrices = {
 };
 
 export async function POST(req: NextRequest) {
-  const { plan } = await req.json();
+ const { plan }: { plan: "daily" | "monthly" | "yearly" } = await req.json();
 
   if (!["daily", "monthly", "yearly"].includes(plan)) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
