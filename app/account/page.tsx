@@ -287,7 +287,7 @@ const handleDeleteComment = (id: string) => {
     {trackedPlates.map((plate, idx) => (
       <button
         key={idx}
-        onClick={() => setSelectedPlateFilter(plate)}
+        onClick={() => setSelectedPlateFilter(plate || null)}
         className={`px-3 py-1 rounded border ${selectedPlateFilter === plate ? "bg-blue-800 text-white" : "bg-white text-blue-800"}`}
       >
         {plate}
