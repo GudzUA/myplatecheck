@@ -105,7 +105,7 @@ export default function ModeratorPanel() {
               <td className="p-2">{c.province}</td>
               <td className="p-2 max-w-xs break-words">{c.comment}</td>
               <td className="p-2">
-                {c.media?.length > 0 ? (
+                {Array.isArray(c.media) && c.media.length > 0 ? (
                   <div className="flex flex-wrap gap-1">
                     {c.media.map((m, i) =>
                       m.type.startsWith('video') ? (
