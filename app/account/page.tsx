@@ -28,7 +28,7 @@ type User = {
   trackedPlates?: string[];
   badges?: string[]; 
   paymentHistory?: {
-    plan: string;
+    plan: "day" | "month" | "year";
     amount: number;
     date: string;
   }[];
@@ -320,7 +320,7 @@ const handleDeleteComment = (id: string) => {
     <ul className="text-sm space-y-2">
       {user.paymentHistory.map((entry, idx) => (
         <li key={idx} className="border p-3 rounded shadow-sm bg-white">
-          ✅ {t.plan_label}: <strong>{t[`plan_${entry.plan}`]}</strong> •
+          ✅ {t.plan_label}: <strong>{t[`plan_${entry.plan}` as keyof typeof t]}</strong> •
           💳 {t.amount}: <strong>{entry.amount.toFixed(2)} CAD</strong> •
           🕒 {new Date(entry.date).toLocaleString()}
         </li>
