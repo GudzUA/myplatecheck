@@ -22,9 +22,12 @@ type Comment = {
   createdAt: string;
   media?: MediaItem[];
   videoUrl?: string;
-  author: string; 
+  author: string;
   parentId?: string;
   userType: "guest" | "registered" | "pro";
+  email?: string;    
+  badges?: string[];     
+  pending?: boolean;    
 };
 
 type AppUser = {
