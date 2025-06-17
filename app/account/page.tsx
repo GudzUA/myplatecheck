@@ -243,7 +243,7 @@ const handleDeleteComment = (id: string) => {
   </span>
 )}
 
-{user?.badges?.length > 0 && (
+{Array.isArray(user?.badges) && user.badges.length > 0 && (
   <div className="flex flex-wrap gap-1 mt-2">
     <span className="text-sm text-gray-600">{t.badges_label}:</span>
     {user.badges.map((b, idx) => (
