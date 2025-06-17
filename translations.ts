@@ -295,7 +295,8 @@ badge_liker: "Лайкер",
     reset_error_missing_fields: "Будь ласка, заповніть усі поля.",
     reset_error_invalid_or_expired_token: "Посилання для відновлення недійсне або вже неактивне.",
     reset_error_server_error: "Сталася помилка сервера. Спробуйте ще раз пізніше.",
-
+    reset_missing_email: "Посилання на скидання некоректне або відсутнє.",
+    reset_for_email: "Змінити пароль для",
 
   },
 EN: {
@@ -588,7 +589,8 @@ email_send_error: "Failed to send email. Try again later.",
     reset_error_missing_fields: "Please fill in all required fields.",
     reset_error_invalid_or_expired_token: "The reset link is invalid or has expired.",
     reset_error_server_error: "A server error occurred. Please try again later.",
-
+    reset_for_email: "Change password for", reset_missing_email: "The password reset link is invalid or missing.",
+    
 },
 
 FR: { 
@@ -884,6 +886,7 @@ email_send_error: "Échec de l'envoi de l'email. Réessayez plus tard.",
     reset_error_missing_fields: "Veuillez remplir tous les champs requis.",
     reset_error_invalid_or_expired_token: "Le lien de réinitialisation est invalide ou expiré.",
     reset_error_server_error: "Une erreur du serveur s'est produite. Veuillez réessayer plus tard.",
-
+    reset_missing_email: "Le lien de réinitialisation du mot de passe est invalide ou manquant.",
+    reset_for_email: "Changer le mot de passe pour",
   }
 };
