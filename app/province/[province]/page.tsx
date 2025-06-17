@@ -27,6 +27,8 @@ type CommentData = {
   media?: MediaItem[];
   videoUrl?: string;
   votes?: number;
+  author?: string;     
+  email?: string;         
 };
 
 // Компонент сторінки провінції
