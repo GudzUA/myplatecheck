@@ -89,18 +89,19 @@ const deleteComment = (id: string) => {
               <div className="text-sm text-gray-500 mb-1">
                 <strong>{c.plate}</strong> • {c.province} • {new Date(c.createdAt).toLocaleString()}
               </div>
-{c.media?.[0]?.type?.startsWith("image") && (
+{Array.isArray(c.media) && c.media[0]?.type?.startsWith("image") && c.media[0]?.url && (
   <div className="mt-2">
-<Image
-  src={c.media[0].url}
-  alt="media"
-  width={200}
-  height={150} // додай будь-яку адекватну висоту
-  className="cursor-pointer rounded hover:shadow-lg hover:scale-105 transition object-contain"
-  onClick={() => setFullscreenImage(c.media[0].url)}
-/>
+    <Image
+      src={c.media[0].url}
+      alt="media"
+      width={200}
+      height={150}
+      className="cursor-pointer rounded hover:shadow-lg hover:scale-105 transition object-contain"
+      onClick={() => setFullscreenImage(c.media?.[0]?.url || "")}
+    />
   </div>
 )}
+
 <p className="mb-3">{c.comment}</p>
 <div className="flex flex-col gap-2 items-end">
   <button
