@@ -34,6 +34,7 @@ type Comment = {
   email?: string; 
   pending?: boolean;
   badges?: string[];
+  videoUrl?: string; 
 };
 
 type User = {
