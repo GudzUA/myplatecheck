@@ -272,8 +272,8 @@ function getBadgesForUser(email?: string): string[] {
     {c.videoUrl && <TikTokEmbed url={c.videoUrl} />}
 
                   </Link>
-                    {c.media?.[0]?.url && (
-                      c.media[0].type.startsWith("video") ? (
+               {c.media?.[0]?.url && (
+                  c.media?.[0]?.type?.startsWith("video") ? (
                         <video
                           src={c.media[0].url}
                           controls
