@@ -287,7 +287,10 @@ function getBadgesForUser(email?: string): string[] {
     width={300}
     height={200}
     className="rounded object-cover w-full h-auto cursor-zoom-in"
-    onClick={() => setFullscreenImage(c.media[0].url)}
+   onClick={() => {
+  const url = c.media?.[0]?.url;
+  if (url) setFullscreenImage(url);
+}}
   />
 </div>
 
