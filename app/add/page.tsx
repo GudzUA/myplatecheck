@@ -23,6 +23,7 @@ type Comment = {
   media?: MediaItem[];
   videoUrl?: string;
   author: string; 
+  parentId?: string;
 };
 
 type AppUser = {
