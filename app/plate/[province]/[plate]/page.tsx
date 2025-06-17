@@ -52,7 +52,7 @@ export default function PlatePage() {
   const [showReplyId, setShowReplyId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [modalMessage, setModalMessage] = useState<string | null>(null);
-  const [alertMode, setAlertMode] = useState<"login" | "upgrade" | null>(null);
+  const [alertMode, setAlertMode] = useState<"login" | "upgrade" | undefined>(undefined);
   const [showLogin, setShowLogin] = useState(false);
   const [newId, setNewId] = useState<string>("");
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
@@ -315,7 +315,7 @@ function getBadgesForUser(email?: string): string[] {
           }}
           onClose={() => {
             setModalMessage(null);
-            setAlertMode(null);
+            setAlertMode(undefined);
           }}
         />
       )}
