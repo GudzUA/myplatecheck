@@ -25,7 +25,8 @@ type User = {
   pro?: boolean;
   proUntil?: string;
   tariff?: string;
-  trackedPlates?: string[]; 
+  trackedPlates?: string[];
+  badges?: string[]; 
   paymentHistory?: {
     plan: string;
     amount: number;
