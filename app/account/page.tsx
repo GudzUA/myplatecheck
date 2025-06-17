@@ -314,7 +314,7 @@ const handleDeleteComment = (id: string) => {
  {t.add}
 </button>
    
-  {user?.paymentHistory?.length > 0 && (
+  {Array.isArray(user?.paymentHistory) && user.paymentHistory.length > 0 && (
   <div className="mt-8">
     <h3 className="text-lg font-semibold text-blue-900 mb-3">{t.payment_history}</h3>
     <ul className="text-sm space-y-2">
