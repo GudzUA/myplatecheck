@@ -352,7 +352,6 @@ function getBadgesForUser(email?: string): string[] {
   <DonateButton />
       
         <aside className="bg-white border border-blue-200 rounded-xl shadow-sm w-full self-start p-4">
-<h2>{t.worstDriversJune}</h2>
   <h2 className="text-lg font-bold text-blue-900 mb-4">
   {t.worst_drivers_for} {currentMonth}
 </h2>
