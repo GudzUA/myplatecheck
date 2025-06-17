@@ -77,7 +77,7 @@ export default function ShopPage() {
   const handleAdd = (p: Product) => {
   addToCart({
     id: p.id,
-    name: t[p.nameKey],
+    name: (t as Record<string, string>)[p.nameKey],
     price: p.priceValue,
     quantity: 1,
     image: p.img,
@@ -100,14 +100,18 @@ export default function ShopPage() {
           <div key={p.id} className="bg-white border border-gray-200 rounded-xl shadow-sm p-3 text-center text-xs h-full flex flex-col justify-between">
             <Image
               src={p.img}
-              alt={t[p.nameKey]}
+              alt={(t as Record<string, string>)[p.nameKey]}
               width={100}
               height={100}
               className="mx-auto mb-2 rounded cursor-pointer hover:scale-105 transition"
               onClick={() => setFullscreenImage(p.img)}
             />
-            <h2 className="text-sm font-bold text-blue-800 mb-1">{t[p.nameKey]}</h2>
-            <p className="text-gray-600 text-xs mb-1 line-clamp-2">{t[p.descKey]}</p>
+            <h2 className="text-sm font-bold text-blue-800 mb-1">
+  {(t as Record<string, string>)[p.nameKey]}
+</h2>
+            <p className="text-gray-600 text-xs mb-1 line-clamp-2">
+  {(t as Record<string, string>)[p.descKey]}
+</p>
             <p className="text-sm font-semibold text-blue-900 mb-2">{p.price}</p>
             <button
               className="bg-blue-700 text-white px-3 py-1 rounded hover:bg-blue-800 transition text-xs"
