@@ -343,7 +343,7 @@ const updatedUsers = users.map((u: AppUser) =>
             show={true}
             title={t.alert_title}
             message={modalMessage}
-            mode={alertMode}
+            mode={alertMode ?? undefined}
             onLogin={() => {
               setModalMessage(null);
               setShowLogin(true);
