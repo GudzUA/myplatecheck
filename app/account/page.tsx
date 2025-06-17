@@ -25,13 +25,14 @@ type User = {
   pro?: boolean;
   proUntil?: string;
   tariff?: string;
+  trackedPlates?: string[]; 
   paymentHistory?: {
     plan: string;
     amount: number;
     date: string;
- trackedPlates?: string[];
   }[];
 };
+
 
 export default function AccountPage() {
   const router = useRouter();
