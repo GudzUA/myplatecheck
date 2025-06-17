@@ -13,8 +13,13 @@ type Comment = {
   createdAt: string;
   author: string;
   pending?: boolean;
+  email?: string;             
+  media?: {
+    name: string;
+    type: string;
+    url: string;
+  }[];                    
 };
-
 export default function ModerationPage() {
   const [pendingComments, setPendingComments] = useState<Comment[]>([]);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
