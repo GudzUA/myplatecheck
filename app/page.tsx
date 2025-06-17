@@ -33,6 +33,7 @@ type Comment = {
   author?: string;
   email?: string; 
   pending?: boolean;
+  badges?: string[];
 };
 
 type User = {
