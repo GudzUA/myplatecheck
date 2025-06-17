@@ -32,6 +32,9 @@ type Comment = {
   media?: MediaItem[];
   videoUrl?: string;
   votes?: number;
+  email?: string;        
+  pending?: boolean;      
+  userType?: string;      
 };
 
 export default function PlatePage() {
