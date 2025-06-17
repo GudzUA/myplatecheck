@@ -32,6 +32,7 @@ type Comment = {
   parentId?: string;
   author?: string;
   email?: string; 
+  pending?: boolean;
 };
 
 type User = {
