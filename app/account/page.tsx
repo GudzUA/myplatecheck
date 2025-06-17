@@ -29,6 +29,7 @@ type User = {
     plan: string;
     amount: number;
     date: string;
+ trackedPlates?: string[];
   }[];
 };
 
