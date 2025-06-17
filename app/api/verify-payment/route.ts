@@ -12,11 +12,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing session_id or email" }, { status: 400 });
     }
 
-    const session = await stripe.checkout.sessions.retrieve(session_id);
+const session = await stripe.checkout.sessions.retrieve(session_id);
 
-    if (session.payment_status !== "paid") {
-      return NextResponse.json({ success: false, error: "Payment not completed" }, { status: 402 });
-    }
+if (session.payment_status !== "paid") {
+  return NextResponse.json({ success: false, error: "Payment not completed" }, { status: 402 });
+}
+
+if (!session.amount_total) {
+  return NextResponse.json({ success: false, error: "Missing amount" }, { status: 500 });
+}
 
     const now = Date.now();
     const duration = plan === "monthly" ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
