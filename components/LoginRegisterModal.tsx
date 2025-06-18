@@ -14,6 +14,9 @@ type User = {
   password: string;
   type: string;
   usedInitialLimit?: boolean;
+  pro?: boolean; 
+  proUntil?: string; 
+  tariff?: string;   
 };
 
 export default function LoginRegisterModal({ onClose }: { onClose: () => void }) {
