@@ -13,7 +13,7 @@ export default function TranslatedComment({
   const [showOriginal, setShowOriginal] = useState(false);
 
   useEffect(() => {
-    if (lang === "ua") return; // 🔹 Не перекладати, якщо мова — українська
+    if (lang === "UA") return; // 🔹 Не перекладати, якщо мова — українська
 
     const fetchTranslation = async () => {
       try {
@@ -34,9 +34,9 @@ export default function TranslatedComment({
     fetchTranslation();
   }, [lang, text]);
 
-  if (lang === "ua") {
-    return <p className="text-base text-gray-800 mt-2">{text}</p>;
-  }
+if (lang === "UA") {
+  return <p className="text-base text-gray-800 mt-2">{text}</p>;
+}
 
   return (
     <div className="text-base text-gray-800 mt-2">
