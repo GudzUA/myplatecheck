@@ -56,7 +56,7 @@ if (user?.pro && proUntil && proUntil > now) {
         <h2 className="text-xl font-semibold text-blue-800 mb-2">
           ☀️ {t.day} – <span className="text-blue-800 font-bold">0.99 CAD+Tax</span>
         </h2>
-        <p className="text-sm text-gray-600 mb-4">{t.daily_info}</p>
+        <p className="text-sm text-gray-600 mb-4">{t.day_info}</p>
         <button
           onClick={() => handleUpgrade('daily')}
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
