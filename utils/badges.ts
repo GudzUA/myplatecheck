@@ -3,6 +3,15 @@ import { getComments } from "./comments";
 
 export function assignBadges(user: any): string[] {
   const badges = new Set<string>();
+  
+  type Comment = {
+  id: string;
+  author?: string;
+  email?: string;
+  comment?: string;
+  plate?: string;
+  videoUrl?: string;
+};
 
   // 🔸 Якщо не має логіна або email — гість
   if (!user.login && !user.email) {
@@ -17,9 +26,9 @@ export function assignBadges(user: any): string[] {
   if (user.badges?.includes("moderator")) badges.add("moderator");
   if (user.badges?.includes("founder")) badges.add("founder");
 
-  const comments = getComments().filter(
-    c => c.author === user.login || c.email === user.email
-  );
+  const comments: Comment[] = getComments().filter(
+  (c: Comment) => c.author === user.login || c.email === user.email
+);
 
   // 🔹 Reporter — за перший коментар
   if (comments.length >= 1) badges.add("reporter");
