@@ -97,8 +97,11 @@ useEffect(() => {
     const stored = localStorage.getItem("comments");
     if (!stored) return;
 
-    const comments = JSON.parse(stored);
+    type Comment = { plate: string; province: string };
+
+    const comments: Comment[] = JSON.parse(stored);
     const match = comments.find((c) => c.plate === input);
+
 
     if (match) {
       router.push(`/plate/${match.province}/${input}`);
