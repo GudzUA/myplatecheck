@@ -1,28 +1,39 @@
-import Stripe from "stripe";
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+const secretKey = process.env.STRIPE_SECRET_KEY;
+
+if (!secretKey) {
+  console.warn("⚠️ STRIPE_SECRET_KEY not set — skipping checkout session setup");
+}
+
+const stripe = secretKey ? new Stripe(secretKey, { apiVersion: "2023-10-16" }) : null;
 
 // Базові ціни в канадських центах (без податку)
 const basePrices = {
-  daily: 99,     // 0.99 CAD
-  monthly: 399,  // 0.99 CAD
-  yearly: 2394,  // 23.94 CAD
+  daily: 99,
+  monthly: 399,
+  yearly: 2394,
 };
 
-// Додаємо 12% податку
 const finalPrices = {
-  daily: Math.round(basePrices.daily * 1.12),     // ≈ 110
-  monthly: Math.round(basePrices.monthly * 1.12), // ≈ 447
-  yearly: Math.round(basePrices.yearly * 1.12),   // ≈ 2681
+  daily: Math.round(basePrices.daily * 1.12),
+  monthly: Math.round(basePrices.monthly * 1.12),
+  yearly: Math.round(basePrices.yearly * 1.12),
 };
 
 export async function POST(req: NextRequest) {
- const { plan }: { plan: "daily" | "monthly" | "yearly" } = await req.json();
+  if (!stripe) {
+    return NextResponse.json({ error: "Stripe not initialized" }, { status: 500 });
+  }
+
+  const { plan }: { plan: "daily" | "monthly" | "yearly" } = await req.json();
 
   if (!["daily", "monthly", "yearly"].includes(plan)) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
+
+  const origin = req.headers.get("origin") || "https://myplatecheck.ca";
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
@@ -40,8 +51,8 @@ export async function POST(req: NextRequest) {
         },
       },
     ],
-    success_url: `${req.headers.get("origin")}/upgrade-success?session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
-    cancel_url: `${req.headers.get("origin")}/upgrade-failed`,
+    success_url: `${origin}/upgrade-success?session_id={CHECKOUT_SESSION_ID}&plan=${plan}`,
+    cancel_url: `${origin}/upgrade-failed`,
   });
 
   return NextResponse.json({ url: session.url });
