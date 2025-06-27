@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# Firebase credentials
+firebase/key.json
+
 # next.js
 /.next/
 /out/
