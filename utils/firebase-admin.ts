@@ -1,13 +1,11 @@
 import admin from "firebase-admin";
-import fs from "fs";
 
-const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH || "";
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf8"));
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || "{}");
 
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    storageBucket: "myplatecheck-8b211.firebasestorage.app", 
+    storageBucket: "myplatecheck-8b211.appspot.com",
   });
 }
 
