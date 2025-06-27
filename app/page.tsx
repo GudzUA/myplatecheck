@@ -4,16 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
-import PlateRatingBlock from "../components/PlateRatingBlock";
+import RatingBlock from "../components/RatingBlock";
 import Image from "next/image";
-import { getEmbedHTML } from "../utils/embed";
 import parse from "html-react-parser";
 import BannerAd from "../components/BannerAd";
 import NextImage from "next/image";
-import TikTokEmbed from "../components/TikTokEmbed";
 import DonateButton from "../components/DonateButton";
 import BadgeList from "../components/BadgeList";
 import TranslatedComment from "../components/TranslatedComment";
+
 
 
 type MediaItem = {
@@ -34,13 +33,7 @@ type Comment = {
   email?: string; 
   pending?: boolean;
   badges?: string[];
-  videoUrl?: string; 
-};
-
-type User = {
-  email?: string;
-  badges?: string[];
-  pro?: boolean;
+  videoUrl?: string; // ✅ нове поле для YouTube / TikTok
 };
 
 export default function HomePage() {
@@ -48,12 +41,12 @@ export default function HomePage() {
   const t = translations[lang];
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [worstDrivers, setWorstDrivers] = useState<string[]>([]);
+  const [worstDrivers, setWorstDrivers] = useState<{ plate: string; dislikes: number }[]>([]);
   const [userType, setUserType] = useState<"guest" | "free" | "pro">("guest");
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [clientDates, setClientDates] = useState<Record<string, string>>({});
   const [embedHtmlMap, setEmbedHtmlMap] = useState<Record<string, string | null>>({});
-
+  const [ratings, setRatings] = useState<Record<string, { up: number; down: number }>>({});
 
   const COMMENTS_PER_PAGE = 7;
 
@@ -73,109 +66,116 @@ const currentMonth = monthNames[lang][now.getMonth()];
   const end = start + COMMENTS_PER_PAGE;
   const paginatedComments = comments.slice(start, end);
 
-const expandTikTokUrl = async (url: string): Promise<string> => {
-  try {
-    const res = await fetch(`/api/expand-tiktok?url=${encodeURIComponent(url)}`);
-    const data = await res.json();
-    return data.fullUrl || url;
-  } catch {
-    return url;
+function getEmbedHTML(url: string): string | null {
+  if (!url) return null;
+
+  // TikTok
+  if (url.includes("tiktok.com")) {
+    return `
+      <blockquote class="tiktok-embed" cite="${url}" style="max-width: 605px; min-width: 325px;">
+        <section> </section>
+      </blockquote>
+      <script async src="https://www.tiktok.com/embed.js"></script>
+    `;
   }
-};
+
+  // YouTube
+  if (url.includes("youtube.com/watch") || url.includes("youtu.be")) {
+    const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+    if (match) {
+      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${match[1]}" frameborder="0" allowfullscreen></iframe>`;
+    }
+  }
+
+  return null;
+}
 
 
 useEffect(() => {
-  const processEmbeds = async () => {
-    for (const c of paginatedComments) {
-      if (!c.comment || typeof c.comment !== "string") continue;
-      const urlMatch = c.comment.match(/https?:\/\/[^\s]+/);
-      if (!urlMatch) continue;
+async function fetchComments() {
+  try {
+    const res = await fetch("/api/comments");
+    const data: Comment[] = await res.json();
 
-      let finalUrl = urlMatch[0];
+    const filtered = data.filter((c) => !c.parentId && !c.pending);
 
-      if (finalUrl.includes("facebook.com/share/r/")) {
-        try {
-          const res = await fetch("/api/expand-facebook", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ shortUrl: finalUrl }),
-          });
-          const data = await res.json();
-          finalUrl = data.fullUrl || finalUrl;
-        } catch {}
-      }
-    if (finalUrl.includes("vm.tiktok.com")) {
-      try {
-        finalUrl = await expandTikTokUrl(finalUrl);
-      } catch {}
+    const recent = filtered.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    setComments(recent);
+
+    // Дати для клієнтського форматування
+    const dateMap: Record<string, string> = {};
+    for (const c of recent) {
+      dateMap[c.id] = new Date(c.createdAt).toLocaleDateString();
     }
+    setClientDates(dateMap);
 
-      const embed = getEmbedHTML(finalUrl);
-      if (embed) {
-        setEmbedHtmlMap((prev) => ({ ...prev, [c.id]: embed }));
-      }
+    // Витягуємо всі відео-посилання з comment + videoUrl
+    const embedMap: Record<string, string | null> = {};
+    for (const c of recent) {
+      const rawText = [c.comment, c.videoUrl].filter(Boolean).join(" ");
+      const urls = [...rawText.matchAll(/https?:\/\/\S+/g)];
+      const embeds = urls.map(match => getEmbedHTML(match[0])).filter(Boolean);
+      embedMap[c.id] = embeds.length > 0 ? embeds.join("<br/>") : null;
     }
-  };
+    setEmbedHtmlMap(embedMap);
 
-  processEmbeds();
-}, [paginatedComments]);
+    // Найгірші водії за дизлайками
+// Замість localStorage — запит до API
+const resWorst = await fetch("/api/comment-rating/top-worst");
+const worst: { plate: string; dislikes: number }[] = await resWorst.json();
+setWorstDrivers(worst);
 
-//⬇️ ДОДАЙ ОЦЕ ПІСЛЯ ТОГО useEffect
+  } catch (error) {
+    console.error("❌ Помилка при завантаженні коментарів з бази:", error);
+  }
+}
+  fetchComments();
+}, []);
+
 useEffect(() => {
-  console.log("✅ embedHtmlMap", embedHtmlMap);
-
-  if (typeof window !== "undefined") {
-    try {
-      (window as any).tiktokEmbedLoad?.();
-      (window as any).tiktok?.load?.(); // ⬅️ fallback для нового API
-    } catch (err) {
-      console.warn("TikTok embed failed:", err);
-    }
+  const existingScript = document.querySelector("script[src='https://www.tiktok.com/embed.js']");
+  if (!existingScript) {
+    const script = document.createElement("script");
+    script.src = "https://www.tiktok.com/embed.js";
+    script.async = true;
+    document.body.appendChild(script);
+  } else {
+    setTimeout(() => {
+      if ((window as unknown as { tiktokEmbedLoad?: () => void }).tiktokEmbedLoad) {
+  (window as unknown as { tiktokEmbedLoad?: () => void }).tiktokEmbedLoad!();
+}
+    }, 100);
   }
 }, [embedHtmlMap]);
 
+useEffect(() => {
+  async function fetchRatings() {
+  const commentIds = comments.map((c) => c.id); // ✅ ТУТ ФОРМУЄМО
+  if (commentIds.length === 0) return;
 
-  useEffect(() => {
-    const stored = localStorage.getItem("comments");
+  try {
+    const user = localStorage.getItem("user");
+const email = user ? JSON.parse(user).email : "guest";
 
-    if (stored) {
-      const parsed: Comment[] = JSON.parse(stored);
-     const filtered = parsed.filter(c => !c.parentId && !c.pending); // ❗ фільтрація pending
-
-const recent = filtered.sort(
-  (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-);
-
-setComments(recent);
-
-const dateMap: Record<string, string> = {};
-for (const c of recent) {
-  dateMap[c.id] = new Date(c.createdAt).toLocaleDateString();
+const res = await fetch("/api/rating/batch", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ commentIds, email }), // ✅ тепер і commentIds, і email
+});
+    const data = await res.json();
+    setRatings(data); // ✅ не забудь зберегти
+  } catch (err) {
+    console.error("Rating fetch error", err);
+  }
 }
-setClientDates(dateMap);
 
-const dislikeMap = new Map<string, number>();
 
-      for (const c of filtered) {
-        const ratingRaw = localStorage.getItem(`rating-${c.id}`);
-        if (ratingRaw) {
-          const rating = JSON.parse(ratingRaw);
-          const down = rating.down || 0;
-          if (down > 0) {
-            const current = dislikeMap.get(c.plate) || 0;
-            dislikeMap.set(c.plate, current + down);
-          }
-        }
-      }
+  fetchRatings();
+}, [comments]); // 🔁 не забути додати comments у залежності
 
-      const sortedWorst = Array.from(dislikeMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([plate]) => plate);
-
-      setWorstDrivers(sortedWorst);
-    }
-  }, []);  
 
 useEffect(() => {
   const user = localStorage.getItem("user");
@@ -205,25 +205,6 @@ useEffect(() => {
   }
 }, []);
 
-function getBadgesForUser(email?: string): string[] {
-  if (!email) return [];
-
-  try {
-    const raw = localStorage.getItem("users");
-    if (!raw) return [];
-
-    const users: User[] = JSON.parse(raw);
-    const key = email.trim().toLowerCase();
-
-    const match = users.find((u) => u.email?.trim().toLowerCase() === key);
-    return match?.badges || [];
-  } catch {
-    return [];
-  }
-}
-
-
-
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
  {userType !== "pro" && <BannerAd />}
@@ -240,64 +221,68 @@ function getBadgesForUser(email?: string): string[] {
                   className="bg-white border border-blue-200 rounded-xl shadow-md p-5 space-y-3 hover:shadow-2x1 transition"
                 >
                   <Link href={`/plate/${encodeURIComponent(c.province.toLowerCase().replace(/[^\w]/gi, ""))}/${c.plate}`}>
-                    <div className="text-sm text-gray-500 text-right mb-1 flex items-center justify-end gap-2">
-  <span className="flex items-center gap-2">
-    <BadgeList badges={c.badges || []} />
-    <strong>{c.author || t.anonymous}</strong>
-  </span>
-· <strong>{c.province}</strong> · {clientDates[c.id] || ""}
-</div>
-
-<div className="relative inline-block w-[140px] h-[70px] sm:w-[180px] sm:h-[90px]">
-  <Image
-    src={plateImage}
-    alt={`Номер ${c.plate}`}
-    width={180}
-    height={90}
-    className="w-full h-full object-contain"
-  />
-  <div className="absolute inset-0 flex items-center justify-center">
-    <span className="text-[20px] sm:text-[26px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
-      {c.plate}
+  <div className="text-sm text-gray-500 text-right mb-1 flex items-center justify-end gap-2">
+    <span className="flex items-center gap-2">
+      <BadgeList badges={c.badges || []} />
+      <strong>{c.author || t.anonymous}</strong>
     </span>
+    · <strong>{c.province}</strong> · {clientDates[c.id] || ""}
   </div>
-</div>
 
-<TranslatedComment text={c.comment} />
+  <div className="relative inline-block w-[140px] h-[70px] sm:w-[180px] sm:h-[90px]">
+    <Image
+      src={plateImage}
+      alt={`Номер ${c.plate}`}
+      width={180}
+      height={90}
+      className="w-full h-full object-contain"
+    />
+    <div className="absolute inset-0 flex items-center justify-center">
+      <span className="text-[20px] sm:text-[26px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
+        {c.plate}
+      </span>
+    </div>
+  </div>
+</Link>
+
+{/* Виносимо переклад + embed ПОЗА Link */}
+<TranslatedComment id={c.id} text={c.comment} />
 
 {embedHtmlMap[c.id] && (
-  <div className="mt-2">{parse(embedHtmlMap[c.id]!)}</div>
+  <div className="mt-2">
+    {parse(embedHtmlMap[c.id]!)}
+  </div>
 )}
 
-    {c.videoUrl && <TikTokEmbed url={c.videoUrl} />}
 
-                  </Link>
-               {c.media?.[0]?.url && (
-                  c.media?.[0]?.type?.startsWith("video") ? (
-                        <video
-                          src={c.media[0].url}
-                          controls
-                          className="w-full max-w-[300px] sm:max-w-[100px] h-auto rounded mt-2 mx-auto"
-                        />
-                      ) : (
-<div className="w-full max-w-[100px] sm:max-w-[200px] mx-auto mt-2">
-  <Image
-    src={c.media[0].url}
-    alt="Додане зображення"
-    width={300}
-    height={200}
-    className="rounded object-cover w-full h-auto cursor-zoom-in"
-   onClick={() => {
-  const url = c.media?.[0]?.url;
-  if (url) setFullscreenImage(url);
-}}
-  />
-</div>
 
-                      )
-                    )}
+{Array.isArray(c.media) && c.media.length > 0 && (
+  <div className="flex gap-2 mt-2 flex-wrap">
+    {c.media.map((m, idx) =>
+      m.type.startsWith("image") ? (
+        <Image
+          key={idx}
+          src={m.url}
+          alt={`media-${idx}`}
+          width={120}
+          height={120}
+          className="cursor-pointer rounded hover:shadow-lg hover:scale-105 transition object-contain"
+          onClick={() => setFullscreenImage(m.url)}
+        />
+      ) : m.type.startsWith("video") ? (
+        <video
+          key={idx}
+          src={m.url}
+          controls
+          className="w-full max-w-[200px] h-auto rounded mt-2"
+        />
+      ) : null
+    )}
+  </div>
+)}
 
-                  <div className="flex justify-end"><PlateRatingBlock plate={c.plate} /></div>
+
+                  <div className="flex justify-end"><RatingBlock commentId={c.id}email={c.email}initialVotes={ratings[c.id]}/></div>
                 </div>
               );
             })}
@@ -355,22 +340,20 @@ function getBadgesForUser(email?: string): string[] {
   <h2 className="text-lg font-bold text-blue-900 mb-4">
   {t.worst_drivers_for} {currentMonth}
 </h2>
-  <ol className="list-decimal list-inside space-y-2 text-blue-800 font-semibold">
-    {worstDrivers.map((plate, index) => {
-      const comment = comments.find((c) => c.plate === plate);
-      const province = comment?.province || "manitoba";
-      return (
-        <li key={index}>
-          <Link
-            href={`/plate/${encodeURIComponent(province.toLowerCase().replace(/[^\w]/gi, ""))}/${plate}`}
-            className="hover:underline"
-          >
-            {plate}
-          </Link>
-        </li>
-      );
-    })}
-  </ol>
+<ol className="list-decimal list-inside space-y-2 text-blue-800 font-semibold">
+  {worstDrivers.map((item, index) => (
+    <li key={index}>
+      <Link
+  href={`/plate/${encodeURIComponent(item.plate)}`}
+  className="hover:underline"
+>
+  {item.plate}
+</Link>{" "}
+      — 👎 {item.dislikes}
+    </li>
+  ))}
+</ol>
+
 </aside>
 
 
@@ -406,4 +389,4 @@ function getBadgesForUser(email?: string): string[] {
 )}
     </main>
   );
-}
+} 

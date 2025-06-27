@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  login                String    @unique
+  plate                String
+  password             String
+  type                 String    @default("registered")
+  usedInitialLimit     Boolean?  @default(false)
+  pro                  Boolean?  @default(false)
+  proUntil             DateTime?
+  tariff               String?
+  createdAt            DateTime  @default(now())
+  trackedPlates        Json?
+  paymentHistory       Json?
+  passwordResetTokenId String?
+}
+
+model PasswordResetToken {
+  id      String   @id @default(cuid())
+  userId  String   @unique
+  token   String
+  expires DateTime
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  author    String?
+  plate     String
+  province  String
+  comment   String
+  email     String?
+  createdAt DateTime @default(now())
+  videoUrl  String?
+  media     Json?
+  badges    Json?
+  pending   Boolean  @default(false)
+  parentId  String? // no foreign key
+
+  // No relations — just logic in code
+  // replies    Comment[]   @relation("ReplyThread", fields: [id], references: [parentId])
+  // ratings    CommentRating[]
+  // translations CommentTranslation[]  ← просто видали або закоментуй
+
+  @@index([parentId])
+}
+
+model CommentTranslation {
+  id        String   @id @default(cuid())
+  commentId String // 🔁 зв'язок логічний, без FK
+  language  String
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model CommentRating {
+  id        String   @id @default(cuid())
+  commentId String
+  email     String
+  type      String
+  createdAt DateTime @default(now())
+  plate     String
+  province  String
+
+  @@unique([commentId, email])
+  @@index([commentId])
+}
+
+model DriverRating {
+  id        String   @id @default(cuid())
+  plate     String
+  province  String
+  email     String
+  type      String
+  createdAt DateTime @default(now())
+
+  @@unique([plate, province, email])
+}
+
+model ReplyRating {
+  id        String   @id @default(cuid())
+  replyId   String
+  email     String
+  type      String // "up" | "down"
+  createdAt DateTime @default(now())
+
+  @@unique([replyId, email])
+}

@@ -34,7 +34,8 @@ type Comment = {
   votes?: number;
   email?: string;        
   pending?: boolean;      
-  userType?: string;      
+  userType?: string;
+  badges?: string[];     
 };
 
 export default function PlatePage() {
@@ -54,105 +55,102 @@ export default function PlatePage() {
   const [modalMessage, setModalMessage] = useState<string | null>(null);
   const [alertMode, setAlertMode] = useState<"login" | "upgrade" | undefined>(undefined);
   const [showLogin, setShowLogin] = useState(false);
-  const [newId, setNewId] = useState<string>("");
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-  setNewId(Date.now().toString());
-  }, []);
+useEffect(() => {
+  async function loadComments() {
+    try {
+      const res = await fetch(`/api/comments?plate=${plateCode}&province=${provinceCode}&includeReplies=true`);
+      const all: Comment[] = await res.json();
+      console.log("🔵 ВСІ КОМЕНТАРІ:", all);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("comments");
-    const votes = localStorage.getItem("votesMap");
+      const relevant = all.filter(
+        c =>
+          c.plate.toLowerCase() === plateCode.toLowerCase() &&
+          c.province.toLowerCase() === provinceCode.toLowerCase() &&
+          !c.pending
+      );
+      console.log("🟡 ВІДФІЛЬТРОВАНІ:", relevant);
 
-   if (stored) {
-  const all: Comment[] = JSON.parse(stored);
-  const filtered = all.filter(
-    c => c.plate === plateCode && c.province === provinceCode && !c.pending
-  );
-  setComments(filtered);
+      const root = relevant.filter(c => !c.parentId);
+      console.log("🟢 ROOT:", root);
 
       const replies: Record<string, Comment[]> = {};
-      filtered.forEach(c => {
+      relevant.forEach(c => {
         if (c.parentId) {
           if (!replies[c.parentId]) replies[c.parentId] = [];
           replies[c.parentId].push(c);
         }
       });
+      console.log("🟠 REPLIES:", replies);
+
+      setComments(root);
       setReplyMap(replies);
-     
-        const map: Record<string, string> = {};
-    for (const c of filtered) {
-      if (c.parentId) {
-        map[c.id] = new Date(c.createdAt).toLocaleString();
+
+      const dates: Record<string, string> = {};
+      for (const c of relevant) {
+        dates[c.id] = new Date(c.createdAt).toLocaleString();
       }
+      setReplyDates(dates);
+
+    } catch (err) {
+      console.error("❌ ПОМИЛКА:", err);
     }
-    setReplyDates(map);
   }
 
-  try {
-  if (votes) {
-    setVotesMap(JSON.parse(votes));
-  }
-} catch (err) {
-  console.error("Не вдалося розпарсити голоси:", err);
-  }
+  loadComments();
 }, [plateCode, provinceCode]);
 
-  const handleReplySubmit = (parentId: string) => {
-  const replyLimitKey = `replyCount_${plateCode}_${provinceCode}`;
-  const repliesUsed = parseInt(localStorage.getItem(replyLimitKey) || "0");
 
+const handleReplySubmit = async (parentId: string) => {
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
 
   if (!user) {
-    if (repliesUsed >= 1) {
-      setModalMessage(t.login_required_to_reply);
-      setAlertMode("login");
-      return;
-    }
-  }
-
-  const isPro = user?.pro === true;
-  const isRegistered = !!user?.login && !isPro;
-  const userType = isPro ? "pro" : isRegistered ? "registered" : "guest";
-
-  if (user && userType === "registered" && repliesUsed >= 10) {
-    setModalMessage(t.reply_limit_pro);
-    setAlertMode("upgrade");
+    setModalMessage(t.login_required_to_reply);
+    setAlertMode("login");
     return;
   }
 
-  const newReply: Comment = {
-    id: Date.now().toString(),
-    plate: plateCode,
-    province: provinceCode,
-    author: user?.login || user?.email || "Гість",
-    comment: replyText,
-    createdAt: new Date().toISOString(),
-    parentId,
-    userType, // 💡 тепер це визначено і буде працювати
-  };
-
-  const allComments: Comment[] = JSON.parse(localStorage.getItem("comments") || "[]");
-  const updated = [...allComments, newReply];
-  localStorage.setItem("comments", JSON.stringify(updated));
-
-  if (!user || userType !== "pro") {
-    localStorage.setItem(replyLimitKey, String(repliesUsed + 1));
-  }
-
-  const filtered = updated.filter(c => c.plate === plateCode && c.province === provinceCode);
-  setComments(filtered);
-  setReplyMap(prev => ({
-    ...prev,
-    [parentId]: [...(prev[parentId] || []), newReply],
-  }));
-
-  setReplyText("");
-  setShowReplyId(null);
+  const newReply = {
+  plate: plateCode.toUpperCase(),
+  province: provinceCode.toUpperCase(),
+  author: user?.login || user?.email || "Гість",
+  comment: replyText,
+  createdAt: new Date().toISOString(),
+  parentId,
+  email: user?.email || null,
+  pending: false,
 };
+
+  try {
+    const res = await fetch("/api/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newReply),
+    });
+
+    if (!res.ok) throw new Error("Не вдалося зберегти відповідь");
+
+    const saved: Comment = await res.json();
+
+    setComments(prev => [...prev, saved]);
+    setReplyMap(prev => ({
+      ...prev,
+      [parentId]: [...(prev[parentId] || []), saved],
+    }));
+    setReplyText("");
+    setShowReplyId(null);
+
+    const map = { ...replyDates };
+    map[saved.id] = new Date(saved.createdAt).toLocaleString();
+    setReplyDates(map);
+  } catch (error) {
+    alert("❌ Помилка при збереженні відповіді.");
+    console.error(error);
+  }
+};
+
 
 
   const rootComments = comments.filter(c => !c.parentId);
@@ -174,6 +172,52 @@ function getBadgesForUser(email?: string): string[] {
   }
 }
 
+interface TikTokWindow extends Window {
+  tiktokEmbedLoad?: () => void;
+}
+
+useEffect(() => {
+  const existingScript = document.querySelector("script[src='https://www.tiktok.com/embed.js']");
+  if (!existingScript) {
+    const script = document.createElement("script");
+    script.src = "https://www.tiktok.com/embed.js";
+    script.async = true;
+    document.body.appendChild(script);
+  } else {
+    setTimeout(() => {
+      const win = window as TikTokWindow;
+      if (win.tiktokEmbedLoad) {
+        win.tiktokEmbedLoad();
+      }
+    }, 100);
+  }
+}, [comments]);
+
+useEffect(() => {
+  async function fetchVotes() {
+    const commentIds = comments.map((c) => c.id);
+    if (commentIds.length === 0) return;
+
+    const user = localStorage.getItem("user");
+    const email = user ? JSON.parse(user).email : "guest";
+
+    try {
+      const res = await fetch("/api/rating/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentIds, email }),
+      });
+      const data = await res.json();
+      setVotesMap(data);
+    } catch (err) {
+      console.error("❌ Помилка при отриманні голосів:", err);
+    }
+  }
+
+  fetchVotes();
+}, [comments]);
+
+
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-start justify-start gap-6 mb-6">
@@ -191,7 +235,11 @@ function getBadgesForUser(email?: string): string[] {
           <div className="text-xl font-semibold text-gray-800 mb-2">CAR</div>
           <div>
             <span className="text-xl font-bold text-gray-800 mb-2 block">{t.rate_driver}</span>
-            <DriverRatingBlock plate={plateCode} />
+            <DriverRatingBlock
+  plate={plateCode}
+  email={typeof window !== "undefined" ? JSON.parse(localStorage.getItem("user") || "{}")?.email : undefined}
+  province={provinceCode}
+/>
           </div>
         </div>          
       </div>
@@ -201,28 +249,52 @@ function getBadgesForUser(email?: string): string[] {
       ) : (
         <ul className="space-y-6">
           {rootComments.map((c) => {
-            const urlMatch = c.videoUrl || c.comment?.match(/https?:\/\/[^\s]+/)?.[0];
-            const embed = urlMatch ? getEmbedHTML(urlMatch) : null;
+            const rawText = [c.comment, c.videoUrl].filter(Boolean).join(" ");
+            const urls = [...rawText.matchAll(/https?:\/\/\S+/g)];
+            const embeds = urls.map(match => getEmbedHTML(match[0])).filter(Boolean)
+
             return (
               <li key={c.id} className="mb-8">
                 <div className="bg-white p-4 rounded-xl shadow-md border border-blue-200 space-y-2">
 <div className="text-sm text-gray-600 text-right font-medium flex justify-end items-center gap-1">
-  <BadgeList badges={getBadgesForUser(c.email)} />
-  <strong>{c.author || t.anonymous}</strong> · <strong>{c.province}</strong> · {newId}
+  <span className="flex items-center gap-2">
+    <BadgeList badges={c.badges || []} />
+    <strong>{c.author || t.anonymous}</strong> · <strong>{c.province}</strong> · {replyDates[c.id] || ""}
+  </span>
 </div>
-<TranslatedComment text={c.comment} />
-  {embed && <div className="mt-2">{parse(embed)}</div>}
-{c.media?.[0]?.type?.startsWith("image") && (
-  <div className="mt-2">
-    <Image
-      src={c.media[0].url}
-      alt="Attached"
-      width={150}
-      height={100}
-      className="rounded object-cover max-w-full h-auto"
-    />
+<TranslatedComment id={c.id} text={c.comment} />
+  {embeds.length > 0 && (
+  <div className="mt-2 space-y-2">
+    {embeds.map((html, i) => (
+     <div key={i}>{parse(html || "")}</div>
+    ))}
   </div>
 )}
+
+{Array.isArray(c.media) && c.media.length > 0 && (
+  <div className="flex gap-2 mt-2 flex-wrap">
+    {c.media.map((m, idx) =>
+      m.type.startsWith("image") ? (
+        <Image
+          key={idx}
+          src={m.url}
+          alt={`media-${idx}`}
+          width={200}
+          height={150}
+          className="cursor-pointer rounded hover:shadow-lg hover:scale-105 transition object-contain"
+        />
+      ) : m.type.startsWith("video") ? (
+        <video
+          key={idx}
+          src={m.url}
+          controls
+          className="w-full max-w-[300px] h-auto rounded mt-2"
+        />
+      ) : null
+    )}
+  </div>
+)}
+
   <div className="mt-2 flex justify-end items-center gap-3">
   <RatingBlock commentId={c.id} />
   {votesMap[c.id] && (
@@ -234,18 +306,17 @@ function getBadgesForUser(email?: string): string[] {
 </div>
 
                 {replyMap[c.id]?.length > 0 && (
-
-  <div className="mt-3 space-y-3">
-    {replyMap[c.id].map((reply) => (
-      <div
-        key={reply.id}
+               <div className="mt-3 space-y-3">
+             {replyMap[c.id].map((reply) => (
+                   <div
+                 key={reply.id}
         className="ml-auto mr-2 w-[92%] bg-white border border-blue-100 p-4 rounded-lg shadow-sm"
       >
        <div className="text-sm text-gray-600 text-right font-medium flex justify-end items-center gap-1">
   <BadgeList badges={getBadgesForUser(reply.email)} />
   <strong>{reply.author || t.anonymous}</strong> · <strong>{reply.province}</strong> · {replyDates[reply.id] || ""}
 </div>
-       <TranslatedComment text={reply.comment} />
+       <TranslatedComment id={reply.id} text={reply.comment} />
         <div className="mt-2 flex justify-end">
           <ReplyRatingBlock replyId={reply.id} />
         </div>

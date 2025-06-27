@@ -4,34 +4,57 @@ import { useEffect, useState } from "react";
 import { translations } from "../translations";
 import { useLanguage } from "../context/LanguageContext";
 
+
 export default function ReplyRatingBlock({ replyId }: { replyId: string }) {
   const { lang } = useLanguage();
   const t = translations[lang];
-  const [rating, setRating] = useState({ up: 0, down: 0 });
+  const [upVotes, setUpVotes] = useState(0);
+  const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
-  const [disabled, setDisabled] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const email =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user") || "{}")?.email || "guest"
+      : "guest";
 
   useEffect(() => {
-    const raw = localStorage.getItem(`reply-rating-${replyId}`);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      setRating(saved);
-      setVoted(saved.voted);
-      setDisabled(true);
-    }
+    const fetchRating = async () => {
+      try {
+        const res = await fetch(`/api/reply-rating?replyId=${replyId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setUpVotes(data.up);
+        setDownVotes(data.down);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
+
+    fetchRating();
   }, [replyId]);
 
-  const handleVote = (dir: "up" | "down") => {
-    if (disabled) return;
-    const updated = {
-      ...rating,
-      [dir]: (rating[dir] || 0) + 1,
-      voted: dir,
-    };
-    setRating(updated);
-    setVoted(dir);
-    setDisabled(true);
-    localStorage.setItem(`reply-rating-${replyId}`, JSON.stringify(updated));
+  const handleVote = async (type: "up" | "down") => {
+    try {
+      const res = await fetch("/api/reply-rating", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ replyId, email, type }),
+      });
+
+      if (res.ok) {
+        if (type === "up") setUpVotes((prev) => prev + 1);
+        else setDownVotes((prev) => prev + 1);
+        setVoted(type);
+      } else if (res.status === 409) {
+        setShowModal(true);
+      } else {
+        const errText = await res.text();
+        console.error("Vote error", res.status, errText);
+      }
+    } catch (err) {
+      console.error("Vote error:", err);
+    }
   };
 
   return (
@@ -39,22 +62,36 @@ export default function ReplyRatingBlock({ replyId }: { replyId: string }) {
       <span className="mr-2">{t.rate_reply}</span>
       <button
         onClick={() => handleVote("up")}
-        disabled={disabled}
         className={`px-2 py-1 rounded border ${
           voted === "up" ? "bg-green-200" : "bg-white"
         }`}
       >
-        👍 {rating.up}
+        👍 {upVotes}
       </button>
       <button
         onClick={() => handleVote("down")}
-        disabled={disabled}
         className={`px-2 py-1 rounded border ${
           voted === "down" ? "bg-red-200" : "bg-white"
         }`}
       >
-        👎 {rating.down}
+        👎 {downVotes}
       </button>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded shadow-md text-center">
+            <p className="text-sm">{t.already_voted}</p>
+            <button
+              onClick={() => setShowModal(false)}
+              className="mt-3 px-4 py-1 bg-blue-600 text-white rounded text-sm"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+    
     </div>
   );
 }

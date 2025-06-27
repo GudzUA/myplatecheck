@@ -1,60 +1,103 @@
 "use client";
-import React from "react";
+
 import { useEffect, useState } from "react";
 import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 
-export default function DriverRatingBlock({ plate }: { plate: string }) {
+type Props = {
+  plate: string;
+  email?: string;
+  province: string;
+};
+
+export default function DriverRatingBlock({ plate, email, province }: Props) {
   const { lang } = useLanguage();
   const t = translations[lang];
-  const [rating, setRating] = useState({ up: 0, down: 0 });
+
+  const [upVotes, setUpVotes] = useState(0);
+  const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
-  const [disabled, setDisabled] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    const raw = localStorage.getItem(`driver-rating-${plate}`);
-    if (raw) {
-      const saved = JSON.parse(raw);
-      setRating(saved);
-      setVoted(saved.voted);
-      setDisabled(true);
+useEffect(() => {
+  fetch(`/api/driver-rating?plate=${plate}&email=${email || "guest"}&province=${province}`)
+    .then((res) => res.json())
+    .then((data) => {
+      setUpVotes(data.up || 0);
+      setDownVotes(data.down || 0);
+      if (data.userVote) setVoted(data.userVote);
+    })
+    .catch((err) => console.error("Load driver rating error:", err));
+}, [plate, email, province]); 
+
+  const handleVote = async (type: "up" | "down") => {
+    if (voted) {
+      setShowModal(true);
+      return;
     }
-  }, [plate]);
 
-  const handleVote = (dir: "up" | "down") => {
-    if (disabled) return;
-    const updated = {
-      ...rating,
-      [dir]: (rating[dir] || 0) + 1,
-      voted: dir,
-    };
-    setRating(updated);
-    setVoted(dir);
-    setDisabled(true);
-    localStorage.setItem(`driver-rating-${plate}`, JSON.stringify(updated));
+    try {
+      const res = await fetch("/api/driver-rating", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plate,
+          email: email || "guest",
+          type,
+          province,
+        }),
+      });
+
+      if (res.ok) {
+        if (type === "up") setUpVotes((prev) => prev + 1);
+        else setDownVotes((prev) => prev + 1);
+        setVoted(type);
+      } else if (res.status === 409) {
+        setShowModal(true);
+      } else {
+        const errText = await res.text();
+        console.error("Driver vote failed:", res.status, errText);
+      }
+    } catch (err) {
+      console.error("Vote error:", err);
+    }
   };
 
   return (
-    <div className="flex items-center gap-2 text-sm text-gray-800 mt-2">
-      <span className="font-semibold text-base mr-2">{t.rate_driver}</span>
-      <button
-        onClick={() => handleVote("up")}
-        disabled={disabled}
-        className={`px-2 py-1 rounded border ${
-          voted === "up" ? "bg-green-200" : "bg-white"
-        }`}
-      >
-        👍 {rating.up}
-      </button>
-      <button
-        onClick={() => handleVote("down")}
-        disabled={disabled}
-        className={`px-2 py-1 rounded border ${
-          voted === "down" ? "bg-red-200" : "bg-white"
-        }`}
-      >
-        👎 {rating.down}
-      </button>
-    </div>
+    <>
+      <div className="flex items-center gap-2 text-sm text-gray-800 mt-2">
+        <span className="font-semibold text-base mr-2">{t.rate_driver}</span>
+        <button
+          onClick={() => handleVote("up")}
+          className={`px-2 py-1 rounded border ${
+            voted === "up" ? "bg-green-200" : "bg-white"
+          }`}
+        >
+          👍 {upVotes}
+        </button>
+        <button
+          onClick={() => handleVote("down")}
+          className={`px-2 py-1 rounded border ${
+            voted === "down" ? "bg-red-200" : "bg-white"
+          }`}
+        >
+          👎 {downVotes}
+        </button>
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white p-4 rounded shadow-md text-center">
+            <p className="text-sm">{t.already_voted}</p>
+            <button
+              onClick={() => setShowModal(false)}
+              className="mt-3 px-4 py-1 bg-blue-600 text-white rounded text-sm"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

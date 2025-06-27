@@ -15,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* ✅ Додаємо скрипти для підтримки TikTok і Instagram вставок */}
         <script async src="https://www.tiktok.com/embed.js"></script>
         <script async src="https://www.instagram.com/embed.js"></script>
+
       </head>
       <body className="min-h-screen flex flex-col">
         <LanguageProvider>

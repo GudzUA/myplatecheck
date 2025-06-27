@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ fullUrl: shortUrl }); // якщо не вдалося — повертаємо як є
   } catch (error) {
+    console.error("❌ Facebook expand error:", error);
     return NextResponse.json({ error: "Failed to expand URL" }, { status: 500 });
   }
 }

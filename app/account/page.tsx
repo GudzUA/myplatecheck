@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "../../context/LanguageContext";
 import { translations } from "../../translations";
+import Image from "next/image";
 
 
 type Comment = {
@@ -46,79 +47,134 @@ export default function AccountPage() {
   const [newPlate, setNewPlate] = useState("");
   const [selectedPlateFilter, setSelectedPlateFilter] = useState<string | null>(null);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      setUser(JSON.parse(stored));
-    } else {
-      router.push("/");
-    }
+useEffect(() => {
+  const stored = localStorage.getItem("user");
+  if (!stored) {
+    router.push("/");
+    return;
+  }
 
-    const storedComments = localStorage.getItem("comments");
-    if (storedComments) {
-      const all: Comment[] = JSON.parse(storedComments);
-      setComments(all);
-    }
-  }, [router]);
+  const parsed = JSON.parse(stored);
+  const email = parsed?.email;
 
-const handleChangeLogin = () => {
+  if (!email) {
+    router.push("/");
+    return;
+  }
+
+  fetch("/api/user", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.error) {
+        router.push("/");
+      } else {
+        setUser(data);
+
+        // ✅ Після отримання user — отримати коментарі
+        fetch("/api/comments/by-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ login: data.login }),
+        })
+          .then((res) => res.json())
+          .then((commentsData) => {
+            if (!commentsData.error) {
+              setComments(commentsData);
+            }
+          });
+      }
+    });
+}, [router]);
+
+
+const handleChangeLogin = async () => {
   const newLogin = prompt(t.prompt_new_login);
-  if (newLogin && user) {
-    const updated = { ...user, login: newLogin };
-    localStorage.setItem("user", JSON.stringify(updated));
-    setUser(updated);
+  if (!newLogin || !user) return;
 
-    const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
- const updatedUsers = allUsers.map((u: User) =>
-      u.email === user.email ? { ...u, login: newLogin } : u
-    );
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
+  try {
+    const res = await fetch("/api/user/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, login: newLogin }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data?.error || t.update_failed);
+      return;
+    }
+
+    localStorage.setItem("user", JSON.stringify(data));
+    setUser(data);
+  } catch {
   }
 };
 
 
-const handleChangePassword = () => {
+const handleChangePassword = async () => {
   const oldPass = prompt(t.prompt_old_password);
   const newPass = prompt(t.prompt_new_password);
+  if (!oldPass || !newPass) return;
 
   const stored = localStorage.getItem("user");
   if (!stored) return;
 
   const parsed = JSON.parse(stored);
 
-  if (parsed.password && parsed.password !== oldPass) {
-    alert(t.password_incorrect);
+  try {
+    const res = await fetch("/api/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        login: parsed.login,
+        oldPassword: oldPass,
+        newPassword: newPass,
+      }),
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      parsed.password = newPass;
+      localStorage.setItem("user", JSON.stringify(parsed));
+      alert(t.password_updated);
+    } else {
+      alert(t.password_incorrect);
+    }
+  } catch (e) {
+    console.error("Change password error:", e);
+    alert(t.error);
+  }
+};
+
+const handleChangePlate = async () => {
+  const newPlate = prompt(t.prompt_new_plate);
+  if (!newPlate || !user) return;
+
+  const plateFormatted = newPlate.toUpperCase();
+
+  const res = await fetch("/api/user/update", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: user.email, plate: plateFormatted }),
+  });
+
+  if (!res.ok) {
+    alert("❌ " + t.error);
     return;
   }
 
-  parsed.password = newPass;
-  localStorage.setItem("user", JSON.stringify(parsed));
+  const updated = await res.json();
+  setUser(updated);
 
-  const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
-  const updatedUsers = allUsers.map((u: User) => 
-    u.login === parsed.login ? { ...u, password: newPass } : u
-  );
-  localStorage.setItem("users", JSON.stringify(updatedUsers));
-
-  alert(t.password_updated);
+  // оновити в localStorage, щоб зберегти поточну сесію
+  localStorage.setItem("user", JSON.stringify(updated));
 };
 
-
-const handleChangePlate = () => {
-  const newPlate = prompt(t.prompt_new_plate);
-  if (newPlate && user) {
-    const plateFormatted = newPlate.toUpperCase();
-    const updated = { ...user, plate: plateFormatted };
-    localStorage.setItem("user", JSON.stringify(updated));
-    setUser(updated);
-
-    const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
-const updatedUsers = allUsers.map((u: User) =>
-      u.login === user.login ? { ...u, plate: plateFormatted } : u
-    );
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-  }
-};
 
 
   const handleLogout = () => {
@@ -128,63 +184,88 @@ const updatedUsers = allUsers.map((u: User) =>
   window.location.reload(); // ⬅️ Додаємо це
 };
 
-const handleDelete = () => {
+const handleDelete = async () => {
   if (!user) return;
 
   if (confirm(t.confirm_delete)) {
-    const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
-const updatedUsers = allUsers.filter((u: User) => u.login !== user.login);
+    try {
+      const res = await fetch("/api/user/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email }),
+      });
 
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-    localStorage.removeItem("user");
+      if (!res.ok) {
+        alert(t.update_failed); // переклад
+        return;
+      }
 
-    router.push("/");
-    window.location.reload(); // ⬅️ щоб усе повністю оновилось
+      localStorage.removeItem("user");
+      setUser(null);
+      router.push("/");
+      window.location.reload(); // повне оновлення
+
+    } catch {
+      alert(t.network_error);
+    }
+  }
+};
+
+const handleAddTrackedPlate = async () => {
+  if (!user || !user.pro || !user.proUntil || new Date(user.proUntil) <= new Date()) return;
+
+  const formatted = newPlate.toUpperCase().replace(/\s+/g, "");
+  if (!formatted) return;
+
+  try {
+    const res = await fetch("/api/user/add-plate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, plate: formatted }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (data.error === "plate_exists") return alert(t.plate_exists);
+      if (data.error === "plate_limit") return alert(t.plate_limit);
+      return alert(t.update_failed);
+    }
+
+    localStorage.setItem("user", JSON.stringify(data));
+    setUser(data);
+    setNewPlate("");
+
+  } catch {
+    alert(t.network_error);
   }
 };
 
 
-const handleAddTrackedPlate = () => {
-  if (
-  !user?.pro ||
-  (user.proUntil && new Date(user.proUntil) <= new Date()) ||
-  !newPlate.trim()
-) return;
+const handleRemovePlate = async (plateToRemove: string) => {
+  if (!user) return;
 
-  const formatted = newPlate.toUpperCase().replace(/\s+/g, "");
-  const tracked = user.trackedPlates || [];
+  try {
+    const res = await fetch("/api/user/remove-plate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, plate: plateToRemove })
+    });
 
-  if (tracked.includes(formatted)) return alert(t.plate_exists);
-  if (tracked.length >= 4) return alert(t.plate_limit);
+    const data = await res.json();
 
-  const updated = { ...user, trackedPlates: [...tracked, formatted] };
-  localStorage.setItem("user", JSON.stringify(updated));
-  setUser(updated);
-  setNewPlate("");
+    if (!res.ok) {
+  const key = data.error as keyof typeof t;
+  return alert(t[key] || "Error");
+}
 
-  // 🟡 Оновити users[]
-  const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
-const updatedUsers = allUsers.map((u: User) => 
-    u.login === user.login ? { ...u, trackedPlates: [...tracked, formatted] } : u
-  );
-  localStorage.setItem("users", JSON.stringify(updatedUsers));
-};
+    // ✅ Оновлюємо user у localStorage і в state
+    localStorage.setItem("user", JSON.stringify(data));
+    setUser(data);
 
-
-const handleRemovePlate = (plate: string) => {
-  if (!user?.pro) return;
-
-  const updatedList = user.trackedPlates?.filter(p => p !== plate) || [];
-  const updated = { ...user, trackedPlates: updatedList };
-
-  localStorage.setItem("user", JSON.stringify(updated));
-  setUser(updated);
-
-  const allUsers = JSON.parse(localStorage.getItem("users") || "[]");
-const updatedUsers = allUsers.map((u: User) => 
-    u.login === user.login ? { ...u, trackedPlates: updatedList } : u
-  );
-  localStorage.setItem("users", JSON.stringify(updatedUsers));
+  } catch {
+    alert(t.network_error);
+  }
 };
 
 
@@ -213,21 +294,61 @@ const updatedUsers = allUsers.map((u: User) =>
     replies: comments.filter(c => c.parentId && trackedPlates.includes(c.plate)).length,
   };
 
-const handleDeleteComment = (id: string) => {
+const handleDeleteComment = async (id: string) => {
   if (!confirm(t.confirm_delete)) return;
 
-  const stored = localStorage.getItem("comments");
-  if (!stored) return;
+  try {
+    const res = await fetch("/api/comments/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
 
-  const all: Comment[] = JSON.parse(stored);
-  const updated = all.filter(c => c.id !== id);
+    if (!res.ok) {
+      const data = await res.json();
+      alert(data.error || "❌ " + t.update_failed);
+      return;
+    }
 
-  localStorage.setItem("comments", JSON.stringify(updated));
-  setComments(updated);
-}; 
+    // 🔄 Оновлюємо список коментарів
+    setComments((prev) => prev.filter((c) => c.id !== id));
+  } catch {
+    alert(t.network_error);
+  }
+};
 
   return (
      <>
+{user?.email === "gudz80@gmail.com" && (
+  <button
+    onClick={async () => {
+      try {
+        const res = await fetch("/api/user/pro", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: user.email }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data?.error || "Помилка");
+          return;
+        }
+
+        localStorage.setItem("user", JSON.stringify(data));
+        setUser(data);
+        alert("✅ Ви стали PRO (30 днів)");
+      } catch {
+        alert("❌ Помилка з’єднання");
+      }
+    }}
+    className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 mt-4"
+  >
+    ✅ Стати PRO (30 днів)
+  </button>
+)}
+
+
     <main className="max-w-3xl mx-auto px-4 py-10">
       <div className="bg-white shadow-md border border-blue-200 rounded-xl p-6 space-y-6">
         <div className="text-xl font-bold text-blue-900">{t.title}</div>
@@ -247,13 +368,15 @@ const handleDeleteComment = (id: string) => {
   <div className="flex flex-wrap gap-1 mt-2">
     <span className="text-sm text-gray-600">{t.badges_label}:</span>
     {user.badges.map((b, idx) => (
-      <img
-        key={idx}
-        src={`/badges/${b}.svg`}
-        alt={b}
-        title={b}
-        className="w-6 h-6"
-      />
+      <Image
+  key={idx}
+  src={`/badges/${b}.svg`}
+  alt={b}
+  title={b}
+  width={24}
+  height={24}
+  className="w-6 h-6"
+/>
     ))}
   </div>
 )}

@@ -7,6 +7,13 @@ import ModalAlert from "../../components/ModalAlert";
 import { useLanguage } from "../../context/LanguageContext";
 import { translations } from "../../translations";
 
+type PaymentRecord = {
+  date: string;
+  amount: number;
+  plan: string;
+  status?: string;
+};
+
 type User = {
   email: string;
   login?: string;
@@ -14,7 +21,7 @@ type User = {
   type?: string;
   tariff?: string;
   proUntil?: string;
-  paymentHistory?: any[];
+  paymentHistory?: PaymentRecord[];
   badges?: string[];
 };
 

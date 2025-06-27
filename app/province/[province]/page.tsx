@@ -1,23 +1,21 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import PlateRatingBlock from "../../../components/PlateRatingBlock";
+import RatingBlock from "../../../components/RatingBlock";
 import { getEmbedHTML } from "../../../utils/embed";
 import parse from "html-react-parser";
 import { useLanguage } from "../../../context/LanguageContext";
 import { translations } from "../../../translations";
+import BadgeList from "../../../components/BadgeList";
 
-// Тип для медіа-файлів (зображення або відео)
 type MediaItem = {
   url: string;
   type: string;
 };
 
-// Тип для коментаря
 type CommentData = {
   id: string;
   plate: string;
@@ -27,43 +25,54 @@ type CommentData = {
   media?: MediaItem[];
   videoUrl?: string;
   votes?: number;
-  author?: string;     
-  email?: string;         
+  author?: string;
+  email?: string;
+  badges?: string[];
 };
 
-// Компонент сторінки провінції
 export default function ProvincePage() {
-  const { province } = useParams() as { province: string }; // <-- правильне витягування
+  const { province } = useParams() as { province: string };
   const rawProvince = province || "";
-
   const { lang } = useLanguage();
   const t = translations[lang];
+
   const [comments, setComments] = useState<CommentData[]>([]);
   const [clientDates, setClientDates] = useState<Record<string, string>>({});
   const cleaned = rawProvince.replace(/[^\w]/gi, "").toLowerCase();
   const provinceSlug = decodeURIComponent(cleaned);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("comments");
-    if (!stored) return;
+useEffect(() => {
+  async function fetchComments() {
+    try {
+      const res = await fetch(`/api/comments?province=${provinceSlug}`);
+      const data = await res.json();
 
-    const all: CommentData[] = JSON.parse(stored);
-    const filtered = all.filter(
-      (c) => (c.province || "").toLowerCase().replace(/[^\w]/gi, "") === provinceSlug
-    );
+      if (!Array.isArray(data)) {
+        console.error("Невірна відповідь з API:", data);
+        return;
+      }
 
-          setComments(filtered); 
+      setComments(data);
 
-const dateMap: Record<string, string> = {};
-for (const c of filtered) {
-  dateMap[c.id] = new Date(c.createdAt).toLocaleDateString();
-}
-setClientDates(dateMap);
-  }, [provinceSlug]);
+      const dateMap: Record<string, string> = {};
+      for (const c of data) {
+        dateMap[c.id] = new Date(c.createdAt).toLocaleDateString();
+      }
+      setClientDates(dateMap);
+    } catch (err) {
+      console.error("❌ Помилка завантаження:", err);
+    }
+  }
+
+  fetchComments();
+}, [provinceSlug]);
+
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6 capitalize">{t.comments_for}: {provinceSlug}</h1>
+      <h1 className="text-2xl font-bold mb-6 capitalize">
+        {t.comments_for}: {cleaned}
+      </h1>
 
       {comments.length === 0 ? (
         <p className="text-gray-500 italic">{t.no_province_comments}</p>
@@ -79,43 +88,60 @@ setClientDates(dateMap);
                 key={c.id}
                 className="bg-white border border-blue-200 rounded-xl shadow-md p-5 space-y-3 hover:shadow-lg transition"
               >
-                <Link href={`/plate/${encodeURIComponent(c.province.toLowerCase().replace(/[^\w]/gi, ""))}/${c.plate}`}>
-                  <div className="text-sm text-gray-500 text-right mb-1">
-                    <strong>{c.author || t.anonymous}</strong> · <strong>{c.province}</strong> · {clientDates[c.id] || ""}
+                <Link href={`/plate/${encodeURIComponent(c.province.toLowerCase())}/${c.plate}`}>
+                  <div className="text-sm text-gray-500 text-right mb-1 flex items-center justify-end gap-2">
+                        <span className="flex items-center gap-2">
+                        <BadgeList badges={c.badges || []} />      
+                    <strong>{c.author || t.anonymous}</strong> ·{" "}
+                         </span>
+                    <strong>{c.province}</strong> · {clientDates[c.id] || ""}
                   </div>
                   <div className="relative inline-block w-[180px] h-[90px]">
-<Image
-  src={plateImage}
-  alt={`${t.plate_alt} ${c.plate}`}
-  width={180}
-  height={90}
-  className="w-full h-full object-contain"
-/>
+                    <Image
+                      src={plateImage}
+                      alt={`${t.plate_alt} ${c.plate}`}
+                      width={180}
+                      height={90}
+                      className="w-full h-full object-contain"
+                    />
                     <span className="absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[26px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
                       {c.plate}
                     </span>
                   </div>
                   <p className="text-base text-gray-800 mt-2">{c.comment}</p>
                   {embed && <div className="mt-2">{parse(embed)}</div>}
-                  {c.media?.[0]?.url && (
-                    c.media[0].type.startsWith("video") ? (
-                      <video
-                        src={c.media[0].url}
-                        controls
-                        className="w-[200px] h-auto rounded mt-2"
-                      />
-                    ) : (
-<Image
-  src={c.media[0].url}
-  alt={t.added_image}
-  width={200}
-  height={150}
-  className="rounded mt-2 object-cover"
-/>
-                    )
-                  )}
+                  {Array.isArray(c.media) && c.media.length > 0 && (
+  <div className="flex flex-wrap gap-4 mt-2">
+    {c.media.map((item, idx) => {
+      if (!item?.type || !item?.url) return null;
+
+      return item.type.startsWith("video") ? (
+        <video
+          key={idx}
+          src={item.url}
+          controls
+          className="w-[200px] h-auto rounded"
+        />
+      ) : (
+        <Image
+          key={idx}
+          src={item.url}
+          alt={t.added_image}
+          width={200}
+          height={150}
+          className="rounded object-cover"
+        />
+      );
+    })}
+  </div>
+)}
+
+
+
                 </Link>
-                <div className="flex justify-end"><PlateRatingBlock plate={c.plate} /></div>
+                <div className="flex justify-end">
+                  <RatingBlock commentId={c.id} />
+                </div>
               </div>
             );
           })}

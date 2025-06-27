@@ -55,6 +55,26 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
+  if (!user) return;
+
+  const checkUser = async () => {
+    try {
+      const res = await fetch(`/api/auth/check-user?login=${user.login}`);
+      if (res.status === 404) {
+        localStorage.removeItem("user");
+        setUser(null);
+        window.location.reload(); // або router.push("/login") — якщо ти хочеш явно
+      }
+    } catch (err) {
+      console.error("Error checking user existence", err);
+    }
+  };
+
+  checkUser();
+}, [user]);
+
+
+useEffect(() => {
   const status = localStorage.getItem("moderationStatus");
   if (status === "approved") {
     setBanner("✅ Ваш коментар опубліковано");
@@ -87,30 +107,26 @@ useEffect(() => {
 }, []);
 
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const input = plate.trim().toUpperCase().replace(/\s+/g, "");
-    if (!input) return;
+  const handleSearch = async (e: React.FormEvent) => {
+  e.preventDefault();
+  const input = plate.trim().toUpperCase().replace(/\s+/g, "");
+  if (!input) return;
 
+  try {
+    const res = await fetch(`/api/search?plate=${input}`);
+    const data = await res.json();
 
-
-    const stored = localStorage.getItem("comments");
-    if (!stored) return;
-
-    type Comment = { plate: string; province: string };
-
-    const comments: Comment[] = JSON.parse(stored);
-    const match = comments.find((c) => c.plate === input);
-
-
-    if (match) {
-      router.push(`/plate/${match.province}/${input}`);
-    } else {
+    if (!res.ok || !data.province) {
       alert(t.not_found);
+    } else {
+      router.push(`/plate/${data.province}/${input}`);
     }
+  } catch {
+    alert(t.not_found);
+  }
 
-    setPlate("");
-  };
+  setPlate("");
+};
 
 const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -138,9 +154,17 @@ const handleMouseLeave = () => {
         <div className="max-w-7xl mx-auto">
           {/* 🖥 Desktop */}
           <div className="hidden md:flex items-center justify-between gap-6">
-            <Link href="/" className="flex items-center gap-2">
-              <Image src="/img/logo.png" alt="Logo" width={100} height={40} />
-            </Link>
+            <Link href="/" className="w-[160px] h-auto">
+  <Image
+    src="/img/logo.png"
+    alt="Logo"
+    width={150}
+    height={50}
+    className="w-[150px] h-[50px]"
+    priority
+  />
+</Link>
+
             <ul className="flex flex-row space-x-4 text-[17px] font-semibold tracking-wide uppercase">
               <li><Link href="/add" className="hover:text-blue-300 transition">{t.comments}</Link></li>
               <li><Link href="/rankings" className="hover:text-blue-300 transition">{t.rating}</Link></li>
@@ -229,9 +253,17 @@ const handleMouseLeave = () => {
           <div className="md:hidden flex flex-col gap-2">
             {/* Line 1: Logo + Search */}
             <div className="flex items-center justify-between gap-2">
-              <Link href="/">
-                <Image src="/img/logo.png" alt="Logo" width={70} height={70} />
-              </Link>
+             <div className="w-[140px] h-auto">
+  <Image
+    src="/img/logo.png"
+    alt="Logo"
+    width={140}
+    height={50}
+    className="w-[140px] h-[50px]"
+    priority
+  />
+</div>
+
               <form onSubmit={handleSearch} className="flex items-center gap-2">
                 <input
                   type="text"

@@ -2,24 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
 export async function POST(req: NextRequest) {
-  const { email, subject, message } = await req.json();
-
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || "465"),
-    secure: true,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-  });
-
   try {
+    const { email, subject, message } = await req.json();
+    const lang = req.headers.get("accept-language")?.split(",")[0]?.split("-")[0] || "ua";
+
+    if (!email || !subject || !lang) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "465"),
+      secure: true,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    const translatedSubject = getTranslatedSubject(subject, lang);
+    const translatedMessage = getTranslatedMessage(message, lang);
+
     await transporter.sendMail({
-      from: `"MyPlateCheck" <${process.env.SMTP_USER}>`,
+      from: `MyPlateCheck <${process.env.SMTP_USER}>`,
       to: email,
-      subject,
-      html: `<p>${message}</p>`,
+      subject: translatedSubject,
+      html: `<p>${translatedMessage}</p>`,
     });
 
     return NextResponse.json({ success: true });
@@ -27,4 +35,70 @@ export async function POST(req: NextRequest) {
     console.error("❌ Email send error:", error);
     return NextResponse.json({ success: false, error }, { status: 500 });
   }
+}
+
+function getTranslatedSubject(subject: string, lang: string): string {
+  if (subject === "comment_rejected") {
+    if (lang === "fr") return "Votre commentaire a été rejeté ❌";
+    if (lang === "en") return "Your comment was rejected ❌";
+    return "Ваш коментар відхилено ❌";
+  }
+  if (subject === "comment_approved") {
+    if (lang === "fr") return "Votre commentaire a été publié ✅";
+    if (lang === "en") return "Your comment was published ✅";
+    return "Ваш коментар опубліковано ✅";
+  }
+  return subject;
+}
+
+function getTranslatedMessage(message: string, lang: string): string {
+  // якщо є причина відхилення
+  if (message.startsWith("REJECTED:")) {
+    const [, plate, reason] = message.match(/^REJECTED:(.+?):(.+)$/) || [];
+
+    if (!plate || !reason) {
+      return lang === "fr"
+        ? "Votre commentaire a été rejeté sans raison précisée."
+        : lang === "en"
+        ? "Your comment was rejected without a specified reason."
+        : "Ваш коментар було відхилено без вказаної причини.";
+    }
+
+    if (lang === "fr") {
+      return `Votre commentaire sur la plaque ${plate} a été rejeté par le modérateur. Raison : ${getReasonText(reason, lang)}`;
+    }
+    if (lang === "en") {
+      return `Your comment on plate ${plate} was rejected by the moderator. Reason: ${getReasonText(reason, lang)}`;
+    }
+    return `Ваш коментар до номеру ${plate} було відхилено модератором. Причина: ${getReasonText(reason, lang)}`;
+  }
+
+  // якщо схвалено
+  const plate = message;
+  if (lang === "fr") return `Votre commentaire sur la plaque ${plate} a été publié avec succès. Merci !`;
+  if (lang === "en") return `Your comment on plate ${plate} was successfully published. Thank you!`;
+  return `Ваш коментар до номеру ${plate} успішно опубліковано. Дякуємо!`;
+}
+
+function getReasonText(reason: string, lang: string): string {
+  if (reason === "image_violation") {
+    if (lang === "fr") return "Violation d'image (visages, informations privées)";
+    if (lang === "en") return "Image violation (faces, private info)";
+    return "Порушення у зображенні (обличчя, приватна інформація)";
+  }
+
+  if (reason === "inappropriate_text") {
+    if (lang === "fr") return "Texte offensant ou inapproprié";
+    if (lang === "en") return "Offensive or inappropriate text";
+    return "Образливий або неприйнятний текст";
+  }
+
+  if (reason === "spam") {
+    if (lang === "fr") return "Spam ou contenu promotionnel";
+    if (lang === "en") return "Spam or promotional content";
+    return "Спам або рекламний вміст";
+  }
+
+  // fallback
+  return reason;
 }

@@ -6,19 +6,6 @@ import { translations } from "../translations";
 import Link from "next/link";
 import { assignBadges } from "../utils/badges";
 
-
-type User = {
-  email: string;
-  login: string;
-  plate: string;
-  password: string;
-  type: string;
-  usedInitialLimit?: boolean;
-  pro?: boolean; 
-  proUntil?: string; 
-  tariff?: string;   
-};
-
 export default function LoginRegisterModal({ onClose }: { onClose: () => void }) {
   const [email, setEmail] = useState("");
   const [login, setLogin] = useState("");
@@ -29,98 +16,82 @@ export default function LoginRegisterModal({ onClose }: { onClose: () => void })
   const [confirm, setConfirm] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
 
- const handleLogin = () => {
-  const users: User[] = JSON.parse(localStorage.getItem("users") || "[]");
-  const emailClean = email.trim().toLowerCase();
+  const handleLogin = async () => {
+    const emailClean = email.trim().toLowerCase();
 
-  const found = users.find(
-    (u) => u.email === emailClean && u.password === password
-  );
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: emailClean, password, type: "login" }),
+    });
 
-if (found) {
-  // 🔍 Перевіряємо чи PRO не закінчився
-  const updatedUser = { ...found };
+    if (!res.ok) {
+      alert(t.wrong_email_or_password);
+      return;
+    }
 
-if (updatedUser.pro && updatedUser.proUntil) {
-  const isExpired = new Date(updatedUser.proUntil) < new Date();
-  if (isExpired) {
-    updatedUser.pro = false;
-    updatedUser.type = "registered";
-    delete updatedUser.proUntil;
-    delete updatedUser.tariff;
-  }
-}
-  // 💾 Зберігаємо
-  // 🏷 Додаємо значки
-  const updatedUserWithBadges = {
-    ...updatedUser,
-    badges: assignBadges(updatedUser),
+    const found = await res.json();
+
+    if (found) {
+      if (found.pro && found.proUntil && new Date(found.proUntil) < new Date()) {
+        found.pro = false;
+        found.type = "registered";
+        delete found.proUntil;
+        delete found.tariff;
+      }
+
+      const updatedUserWithBadges = {
+        ...found,
+        badges: assignBadges(found),
+      };
+
+      localStorage.setItem("user", JSON.stringify(updatedUserWithBadges));
+      window.dispatchEvent(new Event("userUpdated"));
+      window.location.reload();
+    }
   };
 
-  localStorage.setItem("user", JSON.stringify(updatedUserWithBadges));
+  const handleRegister = async () => {
+    if (!email || !login || !plate || !password || !confirm) {
+      alert(t.fill_all_fields);
+      return;
+    }
 
-  const updatedUsers = users.map((u) =>
-    u.email === updatedUserWithBadges.email ? updatedUserWithBadges : u
-  );
-  localStorage.setItem("users", JSON.stringify(updatedUsers));
+    if (password !== confirm) {
+      alert(t.passwords_do_not_match);
+      return;
+    }
 
-  window.dispatchEvent(new Event("userUpdated"));
-  window.location.reload();
+    const emailClean = email.trim().toLowerCase();
+    const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
-} else {
-    alert(t.wrong_email_or_password);
-  }
-};
+    if (!emailRegex.test(emailClean)) {
+      alert(t.invalid_email_format);
+      return;
+    }
 
-  const handleRegister = () => {
-  if (!email || !login || !plate || !password || !confirm) {
-    alert(t.fill_all_fields);
-    return;
-  }
+    const res = await fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: emailClean, login, plate, password, type: "register" }),
+    });
 
-  if (password !== confirm) {
-    alert(t.passwords_do_not_match);
-    return;
-  }
+    if (!res.ok) {
+      const message = await res.text();
+      alert(message);
+      return;
+    }
 
-  const emailClean = email.trim().toLowerCase();
-  const emailRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
+    const newUser = await res.json();
+    const newUserWithBadges = {
+      ...newUser,
+      badges: assignBadges(newUser),
+    };
 
-  if (!emailRegex.test(emailClean)) {
-    alert(t.invalid_email_format);
-    return;
-  }
-
-  const users: User[] = JSON.parse(localStorage.getItem("users") || "[]");
-
-  if (users.some((u) => u.email === emailClean)) {
-    alert(t.email_exists);
-    return;
-  }
-
-  const loginKey = login.toLowerCase();
-
-    const newUser: User = {
-    email: emailClean,
-    login: loginKey,
-    plate,
-    password,
-    type: "registered",
+    localStorage.setItem("user", JSON.stringify(newUserWithBadges));
+    window.dispatchEvent(new Event("userUpdated"));
+    window.location.reload();
   };
-
-  const newUserWithBadges = {
-    ...newUser,
-    badges: assignBadges(newUser),
-  };
-
-  localStorage.setItem("users", JSON.stringify([...users, newUserWithBadges]));
-  localStorage.setItem("user", JSON.stringify(newUserWithBadges));
-
-  window.dispatchEvent(new Event("userUpdated"));
-  window.location.reload();
-
-};
-
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center px-4">
@@ -142,12 +113,12 @@ if (updatedUser.pro && updatedUser.proUntil) {
             placeholder="Email"
             value={email}
             onChange={(e) => {
-    const val = e.target.value;
-    const allowed = /^[a-zA-Z0-9@._\-+]*$/; // лише англ. символи, @, крапка, тире, підкреслення
-    if (allowed.test(val)) {
-      setEmail(val.trim().toLowerCase());
-    }
-  }}
+              const val = e.target.value;
+              const allowed = /^[a-zA-Z0-9@._\-+]*$/;
+              if (allowed.test(val)) {
+                setEmail(val.trim().toLowerCase());
+              }
+            }}
             className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
@@ -195,39 +166,37 @@ if (updatedUser.pro && updatedUser.proUntil) {
             {mode === "login" ? t.login_title : t.register_title}
           </button>
 
-{mode === "login" && (
-  <div className="text-center mt-2">
-    <Link href="/forgot-password" className="text-sm underline text-blue-600 hover:text-blue-800">
-  {t.forgot_password}
-</Link>
+          {mode === "login" && (
+            <div className="text-center mt-2">
+              <Link href="/forgot-password" className="text-sm underline text-blue-600 hover:text-blue-800">
+                {t.forgot_password}
+              </Link>
+            </div>
+          )}
 
-  </div>
-)}
-
-         <p className="text-sm text-center text-gray-500">
-  {mode === "login" ? (
-    <>
-      {t.no_account}{" "}
-      <span
-        className="text-blue-600 hover:underline cursor-pointer"
-        onClick={() => setMode("register")}
-      >
-        {t.register_action}
-      </span>
-    </>
-  ) : (
-    <>
-      {t.has_account}{" "}
-      <span
-        className="text-blue-600 hover:underline cursor-pointer"
-        onClick={() => setMode("login")}
-      >
-        {t.login_action}
-      </span>
-    </>
-  )}
-</p>
-
+          <p className="text-sm text-center text-gray-500">
+            {mode === "login" ? (
+              <>
+                {t.no_account} {" "}
+                <span
+                  className="text-blue-600 hover:underline cursor-pointer"
+                  onClick={() => setMode("register")}
+                >
+                  {t.register_action}
+                </span>
+              </>
+            ) : (
+              <>
+                {t.has_account} {" "}
+                <span
+                  className="text-blue-600 hover:underline cursor-pointer"
+                  onClick={() => setMode("login")}
+                >
+                  {t.login_action}
+                </span>
+              </>
+            )}
+          </p>
         </div>
       </div>
     </div>

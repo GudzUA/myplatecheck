@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import imageCompression from "browser-image-compression";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ModalAlert from "../../components/ModalAlert";
 import LoginRegisterModal from "../../components/LoginRegisterModal";
 import { useLanguage } from "../../context/LanguageContext";
 import { translations } from "../../translations";
+import Image from "next/image";
+
 
 type MediaItem = {
   name: string;
@@ -54,8 +57,35 @@ export default function AddCommentPage() {
   const [alertMode, setAlertMode] = useState<"login" | "upgrade" | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [userType, setUserType] = useState<"guest" | "registered" | "pro">("guest");
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [userType, setUserType] = useState<"guest" | "free" | "pro">("guest");
 
+
+async function uploadBase64Image(base64: string, type: string): Promise<string | null> {
+  try {
+    const name = crypto.randomUUID() + "." + type.split("/")[1];
+
+    const res = await fetch("/api/upload-media", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ base64, type, name }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("❌ Upload failed:", data.error);
+      return null;
+    }
+
+    console.log("✅ Firebase uploaded URL:", data.url);
+    return data.url;
+  } catch (err) {
+    console.error("❌ Error uploading:", err);
+    return null;
+  }
+}
 
 useEffect(() => {
   const user = localStorage.getItem("user");
@@ -75,12 +105,44 @@ useEffect(() => {
 }, []);
 
 
-  const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setMediaFiles(files);
+const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  if (!e.target.files) return;
+
+  const files = Array.from(e.target.files);
+
+  if (mediaFiles.length + files.length > 3) {
+    alert("Можна додати максимум 3 фото");
+    return;
+  }
+
+  for (const file of files) {
+    try {
+      // 🔽 Стискаємо кожне зображення
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 0.25, // ~250KB
+        maxWidthOrHeight: 1280,
+        useWebWorker: true,
+      });
+
+      // ➕ Додаємо в mediaFiles
+      setMediaFiles((prev) => [...prev, compressedFile]);
+
+      // 🖼️ Додаємо превʼю (з вже стиснутого файлу)
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrls((prev) => [...prev, reader.result as string]);
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (err) {
+      console.error("Помилка стискання:", err);
     }
-  };
+  }
+};
+
+const handleRemoveImage = (index: number) => {
+  setMediaFiles((prev) => prev.filter((_, i) => i !== index));
+  setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+};
 
   function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -107,13 +169,13 @@ useEffect(() => {
       ? allComments.filter((c) => !c.parentId && user.login === c.author).length
       : allComments.filter((c) => !c.parentId && c.author === "Гість").length;
 
-    if (!storedUser && newCommentCount >= 1) {
+    if (!storedUser && newCommentCount >= 100) {
       setModalMessage(t.login_required_to_comment);
       setAlertMode("login");
       return;
     }
 
-    if (storedUser && !isPro && newCommentCount >= 3) {
+    if (storedUser && !isPro && newCommentCount >= 100) {
       setModalMessage(t.comment_limit_pro);
       setAlertMode("upgrade");
       return;
@@ -127,14 +189,21 @@ useEffect(() => {
     const normalizedPlate = plate.toUpperCase().replace(/\s+/g, "");
     const newId = Date.now().toString();
 
-    const uploadedMedia: MediaItem[] = await Promise.all(
-      mediaFiles.map(async (file) => ({
-        name: file.name,
-        type: file.type,
-        url: await fileToBase64(file),
-      }))
-    );
+const uploadedMedia: MediaItem[] = await Promise.all(
+  mediaFiles.map(async (file) => {
+    const base64 = await fileToBase64(file);
+    const uploadedUrl = await uploadBase64Image(base64, file.type);
 
+    return {
+      name: file.name,
+      type: file.type,
+      url: uploadedUrl || "", // якщо не завантажилось — порожнє
+    };
+  })
+);
+
+    const expandedVideoUrl = await expandTikTokUrl(videoUrl.trim());
+    const cleanUrl = expandedVideoUrl?.split("?")[0]; 
     const currentUser = JSON.parse(localStorage.getItem("user") || "null");
 
 if (currentUser) {
@@ -169,30 +238,40 @@ const updatedUsers = users.map((u: AppUser) =>
   }
 }
 
+  const newComment: Comment = {
+  id: newId,
+  plate: normalizedPlate,
+  province: province.toLowerCase(),
+  author: currentUser?.login || currentUser?.email || "Гість",
+  comment,
+  createdAt: new Date().toISOString(),
+  media: uploadedMedia,
+  videoUrl: cleanUrl || undefined,
+  userType: currentUser?.pro
+    ? "pro"
+    : currentUser?.login
+    ? "registered"
+    : "guest",
+  email: currentUser?.email || undefined,
+  badges: Array.isArray(currentUser?.badges)
+    ? currentUser.badges
+    : currentUser?.pro
+    ? ["pro"]
+    : currentUser?.login
+    ? ["registered"]
+    : ["guest"],
+  pending: true,
+};
 
+await fetch("/api/comments", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(newComment),
+});
 
-    const newComment: Comment = {
-      id: newId,
-      plate: normalizedPlate,
-      province: province.toLowerCase(),
-      author: currentUser?.login || currentUser.email || "Гість",
-      comment,
-      createdAt: new Date().toISOString(),
-      media: uploadedMedia,
-      videoUrl: videoUrl.trim() || undefined,
-      userType: currentUser?.pro ? "pro" : currentUser?.login ? "registered" : "guest",
-      email: currentUser.email,
-      badges: currentUser.badges || [], 
-      pending: true,
-    };
-
-    const existing = localStorage.getItem("comments");
-    const all = existing ? JSON.parse(existing) : [];
-    all.push(newComment);
-    localStorage.setItem("comments", JSON.stringify(all));
 
     setModalMessage(t.comment_saved);
-    router.push(`/plate/${province}/${normalizedPlate}`);
+    router.push("/");
   };
 
    const expandTikTokUrl = async (url: string): Promise<string> => {
@@ -290,16 +369,17 @@ const updatedUsers = users.map((u: AppUser) =>
   </span>
 </label>
 
-  <input
-    type="url"
-    value={videoUrl}
-    onChange={async (e) => {
+{/* Відео URL */}
+<input
+  type="url"
+  value={videoUrl}
+  onChange={async (e) => {
     const rawUrl = e.target.value.trim();
     const expanded = await expandTikTokUrl(rawUrl);
     setVideoUrl(expanded);
   }}
-    className="w-full mt-1 p-2 border border-gray-300 rounded"
-  />
+  className="w-full mt-1 p-2 border border-gray-300"
+/>
 </div>
 
 <div className="mt-2">
@@ -329,7 +409,28 @@ const updatedUsers = users.map((u: AppUser) =>
     />
   </div>
 </div>
-
+{previewUrls.length > 0 && (
+  <div className="flex flex-wrap gap-4 mt-4">
+    {previewUrls.map((url, i) => (
+      <div key={i} className="relative">
+        <Image
+  src={url}
+  alt={`Preview ${i + 1}`}
+  width={96}
+  height={96}
+  className="object-cover rounded border"
+/>
+        <button
+          type="button"
+          onClick={() => handleRemoveImage(i)}
+          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center shadow-md"
+        >
+          ×
+        </button>
+      </div>
+    ))}
+  </div>
+)}
 
        <p className="text-xs text-gray-600 mb-2">
   {t.rules_notice}{" "}
@@ -360,7 +461,7 @@ const updatedUsers = users.map((u: AppUser) =>
         )}
 
       {showLogin && <LoginRegisterModal onClose={() => setShowLogin(false)} />}
-
+       <p className="text-xs text-gray-500">User type: {userType}</p>
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"

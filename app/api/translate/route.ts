@@ -1,69 +1,74 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma"; // адаптуй шлях до твого
+import { OpenAI } from "openai";
 
-// app/api/translate/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-import { franc } from "franc";
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-type CacheEntry = {
-  original: string;
-  lang: string;
-  translated: string;
-};
-
-const translationCache: CacheEntry[] = [];
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
+  let body;
   try {
-    const { text, targetLang } = await req.json();
+    body = await req.json();
+  } catch (err) {
+    console.error("❌ Invalid JSON input:", err);
+    return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
+  }
 
-    if (!text || !targetLang) {
-      return NextResponse.json({ success: false, error: "missing_fields" }, { status: 400 });
+  const { commentId, text, language } = body;
+
+  if (!commentId || !text || !language) {
+    return NextResponse.json({ error: "Missing commentId, text, or language" }, { status: 400 });
+  }
+
+  try {
+    // 🟢 1. Перевіряємо, чи вже є такий переклад у базі
+    const existing = await prisma.commentTranslation.findFirst({
+      where: { commentId, language },
+    });
+
+    if (existing) {
+      return NextResponse.json({ translation: existing.text });
     }
 
-    // Перевірка мови оригіналу — якщо вже EN, не перекладаємо
-    const detectedLang = franc(text);
-    if ((targetLang === "EN" && detectedLang === "eng") ||
-        (targetLang === "FR" && detectedLang === "fra") ||
-        (targetLang === "UA" && detectedLang === "ukr")) {
-      return NextResponse.json({ success: true, translated: text });
-    }
-
-    // Кешування
-    const cached = translationCache.find(
-      (entry) => entry.original === text && entry.lang === targetLang
-    );
-    if (cached) {
-      return NextResponse.json({ success: true, translated: cached.translated });
-    }
-
+    // 🟡 2. Якщо немає — запит до OpenAI
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a helpful assistant that translates short user comments into the requested language.",
+          content: `Ти — помічник для перекладу. Перекладай лише **дослівно**, без додавання пояснень, тлумачень, вигадування чи покращення. Просто переклади слово в слово те, що надіслав користувач.`,
         },
         {
           role: "user",
-          content: `Translate this into ${targetLang === "FR" ? "French" : targetLang === "UA" ? "Ukrainian" : "English"}:
-
-${text}`,
+          content: text,
         },
       ],
-      temperature: 0.3,
     });
 
-    const translated = response.choices[0]?.message?.content?.trim() || text;
+    const translated = response.choices[0]?.message?.content ?? "";
 
-    // Додаємо в кеш
-    translationCache.push({ original: text, lang: targetLang, translated });
+    // 🔵 3. Зберігаємо в базу (через create — якщо унікальний)
+ const existingTranslation = await prisma.commentTranslation.findFirst({
+  where: { commentId, language },
+});
 
-    return NextResponse.json({ success: true, translated });
+if (existingTranslation) {
+  await prisma.commentTranslation.update({
+    where: { id: existingTranslation.id },
+    data: { text: translated },
+  });
+} else {
+  await prisma.commentTranslation.create({
+    data: {
+      commentId,
+      language,
+      text: translated,
+    },
+  });
+}
+
+    return NextResponse.json({ translation: translated });
   } catch (err) {
-    console.error("❌ Translate API error:", err);
-    return NextResponse.json({ success: false, error: "translation_failed" }, { status: 500 });
+    console.error("❌ Translation failed:", err);
+    return NextResponse.json({ error: "Translation failed" }, { status: 500 });
   }
 }

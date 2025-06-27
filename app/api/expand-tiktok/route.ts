@@ -1,11 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(req: NextRequest) {
-  const shortUrl = req.nextUrl.searchParams.get("url");
-
-  if (!shortUrl) {
-    return NextResponse.json({ error: "Missing URL" }, { status: 400 });
-  }
+export async function POST(req: Request) {
+  const { shortUrl } = await req.json();
 
   try {
     const res = await fetch(shortUrl, {
@@ -13,8 +9,11 @@ export async function GET(req: NextRequest) {
       redirect: "follow",
     });
 
-    return NextResponse.json({ fullUrl: res.url });
-  } catch (err) {
-    return NextResponse.json({ fullUrl: shortUrl });
+    const finalUrl = res.url;
+
+    return NextResponse.json({ fullUrl: finalUrl });
+  } catch (error) {
+    console.error("❌ TikTok expand error:", error);
+    return NextResponse.json({ error: "Не вдалося розширити посилання" }, { status: 500 });
   }
 }
