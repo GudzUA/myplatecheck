@@ -1,15 +1,16 @@
 import admin from "firebase-admin";
 
-const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+function decodeFirebaseKey() {
+  const base64 = process.env.FIREBASE_KEY_BASE64;
+  if (!base64) throw new Error("Missing FIREBASE_KEY_BASE64");
+  const jsonString = Buffer.from(base64, "base64").toString("utf-8");
+  return JSON.parse(jsonString);
+}
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      privateKey: privateKey,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    }),
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    credential: admin.credential.cert(decodeFirebaseKey()),
+    storageBucket: "myplatecheck-8b211.appspot.com",
   });
 }
 
