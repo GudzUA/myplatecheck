@@ -297,12 +297,7 @@ useEffect(() => {
 
   <div className="mt-2 flex justify-end items-center gap-3">
   <RatingBlock commentId={c.id} />
-  {votesMap[c.id] && (
-    <div className="text-sm text-gray-500">
-      👍 {votesMap[c.id].up || 0} | 👎 {votesMap[c.id].down || 0}
-    </div>
-  )}
-</div>
+  </div>
 </div>
 
                 {replyMap[c.id]?.length > 0 && (
