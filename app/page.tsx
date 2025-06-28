@@ -100,10 +100,13 @@ function getEmbedHTML(url: string): string | null {
     `;
   }
 
-  // Instagram — тимчасово вимикаємо
-  if (url.includes("instagram.com")) {
-    return null;
-  }
+ // ✅ Instagram
+if (url.includes("instagram.com/p/")) {
+  return `
+    <blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14" style="width:100%; max-width:540px;">
+    </blockquote>
+  `;
+}
 
   return null;
 }
@@ -177,6 +180,38 @@ useEffect(() => {
 
   tryReload();
 }, [embedHtmlMap]);
+
+useEffect(() => {
+  const hasInstagram = Object.values(embedHtmlMap).some(html => html?.includes("instagram-media"));
+  if (!hasInstagram) return;
+
+  const existingScript = document.querySelector("script[src='https://www.instagram.com/embed.js']");
+  if (!existingScript) {
+    const script = document.createElement("script");
+    script.src = "https://www.instagram.com/embed.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }
+
+  const tryReload = () => {
+    const api = window as unknown as {
+      instgrm?: {
+        Embeds?: {
+          process?: () => void;
+        };
+      };
+    };
+
+    if (api.instgrm?.Embeds?.process) {
+      api.instgrm.Embeds.process();
+    } else {
+      setTimeout(tryReload, 200);
+    }
+  };
+
+  tryReload();
+}, [embedHtmlMap]);
+
 
 useEffect(() => {
   async function fetchRatings() {

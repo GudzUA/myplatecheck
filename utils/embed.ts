@@ -32,10 +32,13 @@ export function getEmbedHTML(url: string): string | null {
     `;
   }
 
-  // ❌ Instagram — не підтримуємо повноцінно через блокування
-  if (url.includes("instagram.com")) {
-    return null; // можна потім показати кнопку "Дивитись в Instagram"
-  }
+ // ✅ Instagram
+if (url.includes("instagram.com/p/")) {
+  return `
+    <blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14" style="width:100%; max-width:540px;">
+    </blockquote>
+  `;
+}
 
   return null;
 }
