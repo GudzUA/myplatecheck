@@ -42,7 +42,6 @@ export default function PlatePage() {
   const router = useRouter();
   const { lang } = useLanguage();
   const t = translations[lang];
-  const [votesMap, setVotesMap] = useState<Record<string, { up: number; down: number }>>({});
   const rawParams = useParams();
   const plateCode = ((rawParams.plate || "") as string).toUpperCase();
   const provinceCode = decodeURIComponent((rawParams.province || "") as string);
@@ -56,51 +55,6 @@ export default function PlatePage() {
   const [alertMode, setAlertMode] = useState<"login" | "upgrade" | undefined>(undefined);
   const [showLogin, setShowLogin] = useState(false);
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
-
-useEffect(() => {
-  async function loadComments() {
-    try {
-      const res = await fetch(`/api/comments?plate=${plateCode}&province=${provinceCode}&includeReplies=true`);
-      const all: Comment[] = await res.json();
-      console.log("🔵 ВСІ КОМЕНТАРІ:", all);
-
-      const relevant = all.filter(
-        c =>
-          c.plate.toLowerCase() === plateCode.toLowerCase() &&
-          c.province.toLowerCase() === provinceCode.toLowerCase() &&
-          !c.pending
-      );
-      console.log("🟡 ВІДФІЛЬТРОВАНІ:", relevant);
-
-      const root = relevant.filter(c => !c.parentId);
-      console.log("🟢 ROOT:", root);
-
-      const replies: Record<string, Comment[]> = {};
-      relevant.forEach(c => {
-        if (c.parentId) {
-          if (!replies[c.parentId]) replies[c.parentId] = [];
-          replies[c.parentId].push(c);
-        }
-      });
-      console.log("🟠 REPLIES:", replies);
-
-      setComments(root);
-      setReplyMap(replies);
-
-      const dates: Record<string, string> = {};
-      for (const c of relevant) {
-        dates[c.id] = new Date(c.createdAt).toLocaleString();
-      }
-      setReplyDates(dates);
-
-    } catch (err) {
-      console.error("❌ ПОМИЛКА:", err);
-    }
-  }
-
-  loadComments();
-}, [plateCode, provinceCode]);
-
 
 const handleReplySubmit = async (parentId: string) => {
   const storedUser = localStorage.getItem("user");
