@@ -10,7 +10,7 @@ function decodeFirebaseKey() {
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(decodeFirebaseKey()),
-    storageBucket: "myplatecheck-8b211.appspot.com",
+    storageBucket: "myplatecheck-8b211.firebasestorage.app",
   });
 }
 
