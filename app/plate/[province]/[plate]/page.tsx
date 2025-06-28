@@ -56,6 +56,51 @@ export default function PlatePage() {
   const [showLogin, setShowLogin] = useState(false);
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
 
+useEffect(() => {
+  async function loadComments() {
+    try {
+      const res = await fetch(`/api/comments?plate=${plateCode}&province=${provinceCode}&includeReplies=true`);
+      const all: Comment[] = await res.json();
+      console.log("🔵 ВСІ КОМЕНТАРІ:", all);
+
+      const relevant = all.filter(
+        c =>
+          c.plate.toLowerCase() === plateCode.toLowerCase() &&
+          c.province.toLowerCase() === provinceCode.toLowerCase() &&
+          !c.pending
+      );
+      console.log("🟡 ВІДФІЛЬТРОВАНІ:", relevant);
+
+      const root = relevant.filter(c => !c.parentId);
+      console.log("🟢 ROOT:", root);
+
+      const replies: Record<string, Comment[]> = {};
+      relevant.forEach(c => {
+        if (c.parentId) {
+          if (!replies[c.parentId]) replies[c.parentId] = [];
+          replies[c.parentId].push(c);
+        }
+      });
+      console.log("🟠 REPLIES:", replies);
+
+      setComments(root);
+      setReplyMap(replies);
+
+      const dates: Record<string, string> = {};
+      for (const c of relevant) {
+        dates[c.id] = new Date(c.createdAt).toLocaleString();
+      }
+      setReplyDates(dates);
+
+    } catch (err) {
+      console.error("❌ ПОМИЛКА:", err);
+    }
+  }
+
+  loadComments();
+}, [plateCode, provinceCode]);
+
+
 const handleReplySubmit = async (parentId: string) => {
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
@@ -145,30 +190,6 @@ useEffect(() => {
       }
     }, 100);
   }
-}, [comments]);
-
-useEffect(() => {
-  async function fetchVotes() {
-    const commentIds = comments.map((c) => c.id);
-    if (commentIds.length === 0) return;
-
-    const user = localStorage.getItem("user");
-    const email = user ? JSON.parse(user).email : "guest";
-
-    try {
-      const res = await fetch("/api/rating/batch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commentIds, email }),
-      });
-      const data = await res.json();
-      setVotesMap(data);
-    } catch (err) {
-      console.error("❌ Помилка при отриманні голосів:", err);
-    }
-  }
-
-  fetchVotes();
 }, [comments]);
 
 
