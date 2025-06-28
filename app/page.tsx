@@ -136,19 +136,27 @@ setWorstDrivers(worst);
 }, []);
 
 useEffect(() => {
+  const hasTikTok = Object.values(embedHtmlMap).some(html => html?.includes("tiktok-embed"));
+  if (!hasTikTok) return;
+
   const existingScript = document.querySelector("script[src='https://www.tiktok.com/embed.js']");
   if (!existingScript) {
     const script = document.createElement("script");
     script.src = "https://www.tiktok.com/embed.js";
     script.async = true;
     document.body.appendChild(script);
-  } else {
-    setTimeout(() => {
-      if ((window as unknown as { tiktokEmbedLoad?: () => void }).tiktokEmbedLoad) {
-  (window as unknown as { tiktokEmbedLoad?: () => void }).tiktokEmbedLoad!();
-}
-    }, 100);
   }
+
+  const tryReload = () => {
+    const api = window as unknown as { tiktokEmbedLoad?: () => void };
+    if (api.tiktokEmbedLoad) {
+      api.tiktokEmbedLoad();
+    } else {
+      setTimeout(tryReload, 200);
+    }
+  };
+
+  tryReload();
 }, [embedHtmlMap]);
 
 useEffect(() => {

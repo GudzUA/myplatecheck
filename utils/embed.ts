@@ -11,11 +11,12 @@ export function getEmbedHTML(url: string): string | null {
       <blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px;">
         <section></section>
       </blockquote>
+      <script async src="https://www.tiktok.com/embed.js"></script>
     `;
   }
 
   // YouTube
- if (url.includes("youtube.com") || url.includes("youtu.be")) {
+  if (url.includes("youtube.com") || url.includes("youtu.be")) {
     const videoId = url.includes("youtube.com")
       ? new URL(url).searchParams.get("v")
       : url.split("/").pop();
