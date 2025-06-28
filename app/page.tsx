@@ -311,11 +311,12 @@ useEffect(() => {
 <TranslatedComment id={c.id} text={c.comment} />
 
 {embedHtmlMap[c.id] && (
-  <div className="mt-2">
-    {parse(embedHtmlMap[c.id]!)}
+  <div className="mt-2 w-full max-w-full overflow-hidden">
+    <div className="max-w-[100%] sm:max-w-[540px] mx-auto">
+      {parse(embedHtmlMap[c.id]!)}
+    </div>
   </div>
 )}
-
 
 
 {Array.isArray(c.media) && c.media.length > 0 && (
