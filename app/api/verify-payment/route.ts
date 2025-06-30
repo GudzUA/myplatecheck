@@ -1,46 +1,72 @@
-import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
+import { prisma } from "@/lib/prisma";
+import { stripe } from "@/lib/stripe";
+import { NextResponse } from "next/server";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+type PaymentEntry = {
+  plan: string;
+  amount: number;
+  date: string;
+};
 
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { session_id, plan, email } = await req.json();
+    const { sessionId, email } = await req.json();
 
-    if (!session_id || !email) {
-      return NextResponse.json({ success: false, error: "Missing session_id or email" }, { status: 400 });
+    if (!sessionId || !email) {
+      return NextResponse.json({ error: "Missing sessionId or email" }, { status: 400 });
     }
 
-const session = await stripe.checkout.sessions.retrieve(session_id);
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-if (session.payment_status !== "paid") {
-  return NextResponse.json({ success: false, error: "Payment not completed" }, { status: 402 });
-}
+    if (!session || session.payment_status !== "paid") {
+      return NextResponse.json({ error: "Payment not confirmed" }, { status: 400 });
+    }
 
-if (!session.amount_total) {
-  return NextResponse.json({ success: false, error: "Missing amount" }, { status: 500 });
-}
+    const plan = session?.metadata?.plan;
+    if (!["daily", "monthly", "yearly"].includes(plan as string)) {
+      return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+      }
 
-    const now = Date.now();
-    const duration = plan === "monthly" ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    const amount = session.amount_total ? session.amount_total / 100 : 0;
+    const now = new Date();
 
-    const updatedUser = {
-      email,
-      proUntil: new Date(now + duration).toISOString(),
-      paymentHistory: [
-        {
-          id: session.id,
-          amount: session.amount_total / 100,
-          date: new Date().toISOString(),
-          plan,
-        },
-      ],
-    };
+    const proUntil = new Date(now);
+    if (plan === "daily") proUntil.setDate(now.getDate() + 1);
+    if (plan === "monthly") proUntil.setMonth(now.getMonth() + 1);
+    if (plan === "yearly") proUntil.setFullYear(now.getFullYear() + 1);
 
-    return NextResponse.json({ success: true, updatedUser });
-  } catch (error) {
-    console.error("❌ Stripe verify error:", error);
-    return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    let history: PaymentEntry[] = [];
+    try {
+      if (user?.paymentHistory) {
+        const parsed = JSON.parse(user.paymentHistory as string) as PaymentEntry[];
+        if (Array.isArray(parsed)) history = parsed;
+      }
+    } catch {
+      console.warn("⚠️ Failed to parse paymentHistory, resetting it");
+    }
+
+    history.push({
+      plan: plan!,
+      amount,
+      date: now.toISOString(),
+    });
+
+    const updatedUser = await prisma.user.update({
+      where: { email },
+      data: {
+        pro: true,
+        proUntil,
+        tariff: plan,
+        type: "pro",
+        paymentHistory: history,
+      },
+    });
+
+    return NextResponse.json(updatedUser);
+  } catch (err) {
+    console.error("❌ Payment verification error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

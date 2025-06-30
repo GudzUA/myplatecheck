@@ -2,133 +2,77 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import ModalAlert from "../../components/ModalAlert";
-import { useLanguage } from "../../context/LanguageContext";
-import { translations } from "../../translations";
-
-type PaymentRecord = {
-  date: string;
-  amount: number;
-  plan: string;
-  status?: string;
-};
-
-type User = {
-  email: string;
-  login?: string;
-  pro?: boolean;
-  type?: string;
-  tariff?: string;
-  proUntil?: string;
-  paymentHistory?: PaymentRecord[];
-  badges?: string[];
-};
+import { useSearchParams, useRouter } from "next/navigation";
+import { useLanguage } from "@/context/LanguageContext";
+import { translations } from "@/translations";
 
 export default function UpgradeSuccessContent() {
-  const [showModal, setShowModal] = useState(true);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const sessionId = searchParams.get("session_id");
   const { lang } = useLanguage();
   const t = translations[lang];
-  const router = useRouter();
-  const params = useSearchParams();
+  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
 
   useEffect(() => {
-    const verify = async () => {
-      const sessionId = params.get("session_id");
-      const plan = params.get("plan") || "daily";
+    console.log("📦 sessionId from URL:", sessionId);
+    const stored = localStorage.getItem("user");
 
-      const raw = localStorage.getItem("user");
-      if (!sessionId || !raw) {
-        setShowModal(false);
-        router.push("/account");
-        return;
-      }
+    if (!sessionId || !stored) {
+      console.error("❌ No sessionId or user in localStorage");
+      setStatus("error");
+      return;
+    }
 
-      const existingUser = JSON.parse(raw);
-      const userEmail = existingUser.email;
+    const parsed = JSON.parse(stored);
+    const email = parsed?.email;
 
-      try {
-        const res = await fetch("/api/verify-payment", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: sessionId, plan, email: userEmail }),
-        });
+    console.log("📧 email from localStorage:", email);
 
-        const data = await res.json();
+    if (!email) {
+      console.error("❌ No email in stored user");
+      setStatus("error");
+      return;
+    }
 
-        if (data.success) {
-          const updatedUser = {
-            ...existingUser,
-            email: userEmail,
-            pro: true,
-            type: "pro",
-            tariff: plan,
-            proUntil: data.updatedUser?.proUntil || existingUser.proUntil,
-            paymentHistory: data.updatedUser?.paymentHistory || [],
-            badges: Array.isArray(existingUser.badges)
-              ? [...new Set([...existingUser.badges, "pro"])]
-              : ["pro"],
-          };
+    // 🔁 Верифікація платежу
+    fetch("/api/verify-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId, email }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("✅ Response from /api/verify-payment:", data);
 
-          localStorage.setItem("user", JSON.stringify(updatedUser));
-          window.dispatchEvent(new Event("userUpdated"));
-
-          const rawUsers = localStorage.getItem("users");
-          const users: User[] = rawUsers ? JSON.parse(rawUsers) : [];
-          const normalizedEmail = userEmail.trim().toLowerCase();
-
-          let userUpdated = false;
-          const updatedUsers = users.map((u: User) => {
-            if (u.email?.trim().toLowerCase() === normalizedEmail) {
-              userUpdated = true;
-              return { ...u, ...updatedUser };
-            }
-            return u;
-          });
-
-          if (!userUpdated) updatedUsers.push(updatedUser);
-
-          localStorage.setItem("users", JSON.stringify(updatedUsers));
-
-          await fetch("/api/send-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: userEmail,
-              subject: "Дякуємо за підтримку MyPlateCheck",
-              message: `Ваш PRO активовано до ${new Date(updatedUser.proUntil).toLocaleDateString()}.`,
-            }),
-          });
-
-          window.dispatchEvent(new Event("storage"));
-          setTimeout(() => router.push("/account"), 2500);
+        if (data?.error) {
+          console.error("❌ Payment verification error:", data.error);
+          setStatus("error");
         } else {
-          setShowModal(false);
-          router.push("/account");
+          localStorage.setItem("user", JSON.stringify(data));
+          window.dispatchEvent(new Event("userUpdated"));
+          setStatus("success");
         }
-      } catch (error) {
-        console.error("❌ Verification error:", error);
-        setShowModal(false);
-        router.push("/account");
-      }
-    };
+      })
+      .catch((err) => {
+        console.error("❌ Fetch error:", err);
+        setStatus("error");
+      });
+  }, [sessionId]);
 
-    verify();
-  }, [params, router, t]);
+  if (status === "loading") return <div className="text-center py-10">{t.payment_checking || "Перевірка платежу..."}</div>;
+  if (status === "error") return <div className="text-center py-10 text-red-600">{t.payment_failed || "Не вдалося підтвердити платіж."}</div>;
 
   return (
-    <main className="max-w-xl mx-auto px-4 py-20 text-center">
-      {showModal && (
-        <ModalAlert
-          show={true}
-          title={t.title_info}
-          message={t.pro_success}
-          onClose={() => {
-            setShowModal(false);
-            window.location.href = "/account";
-          }}
-        />
-      )}
-    </main>
+    <div className="text-center py-10">
+      <h1 className="text-2xl font-bold text-green-700 mb-4">{t.payment_success || "Платіж успішний!"}</h1>
+      <p className="text-gray-700 mb-4">{t.payment_success_details || "Ваша підписка активована. Дякуємо!"}</p>
+      <button
+        onClick={() => router.push("/account")}
+        className="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800"
+      >
+        {t.to_account || "Перейти в акаунт"}
+      </button>
+    </div>
   );
 }

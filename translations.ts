@@ -312,6 +312,12 @@ badge_liker: "Лайкер",
     update_failed: "Не вдалося оновити дані",
     error: "Сталася помилка",
     network_error: "Помилка мережі",
+    login_max_10: "Максимум 10 символів",
+    payment_checking: "Перевірка платежу...",
+    payment_failed: "Не вдалося підтвердити платіж.",
+    payment_success: "Платіж успішний!",
+    payment_success_details: "Ваша підписка активована. Дякуємо!",
+    to_account: "Перейти в акаунт",
 
   },
 EN: {
@@ -626,6 +632,12 @@ email_send_error: "Failed to send email. Try again later.",
     update_failed: "Failed to update your data",
     error: "An error occurred",  
     network_error: "Network error",
+    login_max_10: "Maximum 10 characters",
+    payment_checking: "Checking payment...",
+    payment_failed: "Payment verification failed.",
+    payment_success: "Payment successful!",
+    payment_success_details: "Your subscription is now active. Thank you!",
+    to_account: "Go to account",
 
 },
 
@@ -941,6 +953,12 @@ email_send_error: "Échec de l'envoi de l'email. Réessayez plus tard.",
     update_failed: "Échec de la mise à jour des données",
     error: "Une erreur est survenue",
     network_error: "Erreur réseau",
+    login_max_10: "10 caractères maximum",
+    payment_checking: "Vérification du paiement...",
+    payment_failed: "Échec de la vérification du paiement.",
+    payment_success: "Paiement réussi!",
+    payment_success_details: "Votre abonnement est maintenant actif. Merci!",
+    to_account: "Aller au compte",    
 
   }
 };

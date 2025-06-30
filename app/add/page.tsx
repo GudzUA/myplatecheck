@@ -30,7 +30,8 @@ type Comment = {
   userType: "guest" | "registered" | "pro";
   email?: string;    
   badges?: string[];     
-  pending?: boolean;    
+  pending?: boolean;   
+  userId?: string;
 };
 
 type AppUser = {
@@ -261,6 +262,7 @@ const updatedUsers = users.map((u: AppUser) =>
     ? ["registered"]
     : ["guest"],
   pending: true,
+  userId: currentUser?.id,
 };
 
 await fetch("/api/comments", {

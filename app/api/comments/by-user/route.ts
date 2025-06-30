@@ -3,16 +3,20 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json(); // ← ⬅️ Цей рядок був відсутній
+    const userId = body.userId;
     const login = body.login;
 
-    if (!login) {
-      return NextResponse.json({ error: "Missing login" }, { status: 400 });
+    if (!userId && !login) {
+      return NextResponse.json({ error: "Missing userId or login" }, { status: 400 });
     }
 
     const comments = await prisma.comment.findMany({
       where: {
-        author: login,
+        OR: [
+          { userId },
+          { author: login },
+        ],
       },
       orderBy: {
         createdAt: "desc",

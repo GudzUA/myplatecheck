@@ -7,7 +7,6 @@ import ReplyRatingBlock from "../../../../components/ReplyRatingBlock";
 import DriverRatingBlock from "../../../../components/DriverRatingBlock";
 import ModalAlert from "../../../../components/ModalAlert";
 import LoginRegisterModal from "../../../../components/LoginRegisterModal";
-import { getEmbedHTML } from "../../../../utils/embed";
 import parse from "html-react-parser";
 import { useLanguage } from "../../../../context/LanguageContext";
 import { translations } from "../../../../translations";
@@ -55,13 +54,13 @@ export default function PlatePage() {
   const [alertMode, setAlertMode] = useState<"login" | "upgrade" | undefined>(undefined);
   const [showLogin, setShowLogin] = useState(false);
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
+  const [embedHtmlMap, setEmbedHtmlMap] = useState<{ [id: string]: string }>({});
 
 useEffect(() => {
   async function loadComments() {
     try {
       const res = await fetch(`/api/comments?plate=${plateCode}&province=${provinceCode}&includeReplies=true`);
       const all: Comment[] = await res.json();
-      console.log("🔵 ВСІ КОМЕНТАРІ:", all);
 
       const relevant = all.filter(
         c =>
@@ -69,10 +68,8 @@ useEffect(() => {
           c.province.toLowerCase() === provinceCode.toLowerCase() &&
           !c.pending
       );
-      console.log("🟡 ВІДФІЛЬТРОВАНІ:", relevant);
 
       const root = relevant.filter(c => !c.parentId);
-      console.log("🟢 ROOT:", root);
 
       const replies: Record<string, Comment[]> = {};
       relevant.forEach(c => {
@@ -81,7 +78,6 @@ useEffect(() => {
           replies[c.parentId].push(c);
         }
       });
-      console.log("🟠 REPLIES:", replies);
 
       setComments(root);
       setReplyMap(replies);
@@ -92,6 +88,27 @@ useEffect(() => {
       }
       setReplyDates(dates);
 
+      // 👉 ОНОВЛЕНИЙ embedMap без зайвої змінної
+      const embedMap: Record<string, string | null> = {};
+
+      for (const c of relevant) {
+        const rawText = [c.comment, c.videoUrl].filter(Boolean).join(" ");
+        const urls = [...rawText.matchAll(/https?:\/\/\S+/g)];
+
+        embedMap[c.id] = urls
+          .map(match => getEmbedHTML(match[0]))
+          .filter(Boolean)
+          .join("<br/>") || null;
+      }
+
+      const cleanedMap: { [id: string]: string } = {};
+      for (const key in embedMap) {
+        if (embedMap[key]) {
+          cleanedMap[key] = embedMap[key]!;
+        }
+      }
+
+      setEmbedHtmlMap(cleanedMap);
     } catch (err) {
       console.error("❌ ПОМИЛКА:", err);
     }
@@ -99,6 +116,53 @@ useEffect(() => {
 
   loadComments();
 }, [plateCode, provinceCode]);
+
+
+
+function getEmbedHTML(url: string): string | null {
+  if (!url) return null;
+
+  // TikTok
+  if (url.includes("tiktok.com")) {
+    const match = url.match(/\/video\/(\d+)/);
+    const videoId = match?.[1];
+    if (!videoId) return null;
+
+    return `
+      <blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px;">
+        <section></section>
+      </blockquote>
+    `;
+  }
+
+  // YouTube
+  if (url.includes("youtube.com/watch") || url.includes("youtu.be")) {
+    const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
+    if (match) {
+      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${match[1]}" frameborder="0" allowfullscreen></iframe>`;
+    }
+  }
+
+  // Facebook
+  if (url.includes("facebook.com") && url.includes("video")) {
+    const encodedUrl = encodeURIComponent(url);
+    return `
+      <iframe src="https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=500"
+        width="100%" height="280" style="border:none;overflow:hidden" scrolling="no" frameborder="0"
+        allowfullscreen="true"></iframe>
+    `;
+  }
+
+  // Instagram
+  if (url.includes("instagram.com/p/")) {
+    return `
+      <blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14" style="width:100%; max-width:540px;">
+      </blockquote>
+    `;
+  }
+
+  return null;
+}
 
 
 const handleReplySubmit = async (parentId: string) => {
@@ -120,6 +184,8 @@ const handleReplySubmit = async (parentId: string) => {
   parentId,
   email: user?.email || null,
   pending: false,
+  userId: user.id
+
 };
 
   try {
@@ -149,8 +215,6 @@ const handleReplySubmit = async (parentId: string) => {
     console.error(error);
   }
 };
-
-
 
   const rootComments = comments.filter(c => !c.parentId);
 
@@ -192,6 +256,37 @@ useEffect(() => {
   }
 }, [comments]);
 
+useEffect(() => {
+  const hasInstagram = Object.values(embedHtmlMap).some(html => html?.includes("instagram-media"));
+  if (!hasInstagram) return;
+
+  const existingScript = document.querySelector("script[src='https://www.instagram.com/embed.js']");
+  if (!existingScript) {
+    const script = document.createElement("script");
+    script.src = "https://www.instagram.com/embed.js";
+    script.async = true;
+    document.body.appendChild(script);
+  }
+
+  const tryReload = () => {
+    const api = window as unknown as {
+      instgrm?: {
+        Embeds?: {
+          process?: () => void;
+        };
+      };
+    };
+
+    if (api.instgrm?.Embeds?.process) {
+      api.instgrm.Embeds.process();
+    } else {
+      setTimeout(tryReload, 200);
+    }
+  };
+
+  tryReload();
+}, [embedHtmlMap]);
+
 
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
@@ -224,9 +319,6 @@ useEffect(() => {
       ) : (
         <ul className="space-y-6">
           {rootComments.map((c) => {
-            const rawText = [c.comment, c.videoUrl].filter(Boolean).join(" ");
-            const urls = [...rawText.matchAll(/https?:\/\/\S+/g)];
-            const embeds = urls.map(match => getEmbedHTML(match[0])).filter(Boolean)
 
             return (
               <li key={c.id} className="mb-8">
@@ -238,13 +330,15 @@ useEffect(() => {
   </span>
 </div>
 <TranslatedComment id={c.id} text={c.comment} />
-  {embeds.length > 0 && (
-  <div className="mt-2 space-y-2">
-    {embeds.map((html, i) => (
-     <div key={i}>{parse(html || "")}</div>
-    ))}
+
+  {embedHtmlMap[c.id] && (
+  <div className="mt-2 w-full max-w-full overflow-hidden">
+    <div className="max-w-[100%] sm:max-w-[540px] mx-auto">
+      {parse(embedHtmlMap[c.id])}
+    </div>
   </div>
 )}
+
 
 {Array.isArray(c.media) && c.media.length > 0 && (
   <div className="flex gap-2 mt-2 flex-wrap">

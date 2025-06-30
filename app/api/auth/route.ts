@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   const emailClean = email.trim().toLowerCase();
 
   if (type === "login") {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { email: emailClean },
     });
 
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
     }
 
-    // PRO check
+    // перевірка PRO
     let updatedUser = { ...user };
     if (updatedUser.pro && updatedUser.proUntil) {
       const isExpired = new Date(updatedUser.proUntil) < new Date();
@@ -33,16 +33,14 @@ export async function POST(req: Request) {
       }
     }
 
-    const userWithBadges = {
+    return NextResponse.json({
       ...updatedUser,
       badges: assignBadges(updatedUser),
-    };
-
-    return NextResponse.json(userWithBadges);
+    });
   }
 
   if (type === "register") {
-    if (!email || !login || !plate || !password) {
+    if (!email || !plate || !password) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
@@ -54,20 +52,19 @@ export async function POST(req: Request) {
     const newUser = await prisma.user.create({
       data: {
         email: emailClean,
-        login: login.toLowerCase(),
+        login: login?.trim() || "", // просто записуємо, не перевіряємо
         plate,
         password,
         type: "registered",
       },
     });
 
-    const userWithBadges = {
+    return NextResponse.json({
       ...newUser,
       badges: assignBadges(newUser),
-    };
-
-    return NextResponse.json(userWithBadges);
+    });
   }
 
   return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 }
+

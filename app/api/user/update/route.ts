@@ -24,10 +24,27 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Спочатку отримуємо поточного користувача, щоб знати старий login
+    const existing = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     const updated = await prisma.user.update({
       where: { email },
       data: updateData,
     });
+
+    // Якщо логін змінився — оновлюємо всі коментарі цього користувача
+    if (login && login !== existing.login) {
+      await prisma.comment.updateMany({
+        where: { author: existing.login },
+        data: { author: login.toLowerCase() },
+      });
+    }
 
     return NextResponse.json(updated);
   } catch (error) {

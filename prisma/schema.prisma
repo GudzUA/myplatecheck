@@ -10,7 +10,7 @@ datasource db {
 model User {
   id                   String    @id @default(cuid())
   email                String    @unique
-  login                String    @unique
+  login                String  
   plate                String
   password             String
   type                 String    @default("registered")
@@ -22,6 +22,7 @@ model User {
   trackedPlates        Json?
   paymentHistory       Json?
   passwordResetTokenId String?
+ 
 }
 
 model PasswordResetToken {
@@ -44,6 +45,7 @@ model Comment {
   badges    Json?
   pending   Boolean  @default(false)
   parentId  String? // no foreign key
+  userId    String
 
   // No relations — just logic in code
   // replies    Comment[]   @relation("ReplyThread", fields: [id], references: [parentId])
@@ -51,6 +53,7 @@ model Comment {
   // translations CommentTranslation[]  ← просто видали або закоментуй
 
   @@index([parentId])
+  @@index([userId])
 }
 
 model CommentTranslation {

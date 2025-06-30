@@ -10,14 +10,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, message: "Missing data" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { login } });
+    const user = await prisma.user.findFirst({ where: { login } });
 
     if (!user || user.password !== oldPassword) {
       return NextResponse.json({ success: false, message: "Incorrect password" }, { status: 403 });
     }
 
     await prisma.user.update({
-      where: { login },
+      where: { id: user.id }, 
       data: { password: newPassword },
     });
 

@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useLanguage } from "../../context/LanguageContext";
-import { translations } from "../../translations";
+import { useLanguage } from "../../../context/LanguageContext";
+import { translations } from "../../../translations";
 
 type RatingData = {
   plate: string;

@@ -74,7 +74,7 @@ const handleClear = () => {
           <div className="flex justify-between mt-4">
             <button
               onClick={handleClear}
-              className="text-sm text-gray-500 hover:underline"
+              className="bg-blue-700 text-white px-4 py-2 rounded hover:bg-blue-800 transition"
             >
               {t.clear || "Clear cart"}
             </button>

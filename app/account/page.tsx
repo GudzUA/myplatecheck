@@ -67,7 +67,13 @@ useEffect(() => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
   })
-    .then((res) => res.json())
+    .then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error("❌ /api/user error: " + text);
+      }
+      return res.json();
+    })
     .then((data) => {
       if (data.error) {
         router.push("/");
@@ -78,7 +84,7 @@ useEffect(() => {
         fetch("/api/comments/by-user", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ login: data.login }),
+          body: JSON.stringify({ userId: data.id }),
         })
           .then((res) => res.json())
           .then((commentsData) => {
@@ -87,33 +93,12 @@ useEffect(() => {
             }
           });
       }
+    })
+    .catch((err) => {
+      console.error(err);
+      router.push("/");
     });
 }, [router]);
-
-
-const handleChangeLogin = async () => {
-  const newLogin = prompt(t.prompt_new_login);
-  if (!newLogin || !user) return;
-
-  try {
-    const res = await fetch("/api/user/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: user.email, login: newLogin }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data?.error || t.update_failed);
-      return;
-    }
-
-    localStorage.setItem("user", JSON.stringify(data));
-    setUser(data);
-  } catch {
-  }
-};
 
 
 const handleChangePassword = async () => {
@@ -151,6 +136,37 @@ const handleChangePassword = async () => {
   }
 };
 
+const handleChangeLogin = async () => {
+  const newLogin = prompt(t.prompt_new_login);
+  if (!newLogin || !user) return;
+
+  if (newLogin.length > 10) {
+    alert(t.login_max_10 || "Максимум 10 символів у логіні");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/user/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, login: newLogin }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      alert(data?.error || t.update_failed);
+      return;
+    }
+
+    localStorage.setItem("user", JSON.stringify(data));
+    setUser(data);
+  } catch {
+    alert(t.network_error);
+  }
+};
+
+
 const handleChangePlate = async () => {
   const newPlate = prompt(t.prompt_new_plate);
   if (!newPlate || !user) return;
@@ -175,14 +191,14 @@ const handleChangePlate = async () => {
   localStorage.setItem("user", JSON.stringify(updated));
 };
 
-
-
   const handleLogout = () => {
   localStorage.removeItem("user");
   setUser(null);
   router.push("/");
   window.location.reload(); // ⬅️ Додаємо це
 };
+
+
 
 const handleDelete = async () => {
   if (!user) return;
@@ -428,6 +444,7 @@ const handleDeleteComment = async (id: string) => {
                   value={newPlate}
                   onChange={(e) => setNewPlate(e.target.value)}
                  placeholder={t.placeholder_new_plate}
+                 maxLength={7}
                   className="border p-2 rounded flex-grow"
                 />
                <button
@@ -531,7 +548,6 @@ const handleDeleteComment = async (id: string) => {
     )}
   </div>
 ))
-
   )}
 </div>
 </div>

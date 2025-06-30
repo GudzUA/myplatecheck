@@ -1,4 +1,3 @@
-// app/api/user/route.ts
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -9,7 +8,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing email" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+  where: { email },
+  select: {
+    id: true, // ⬅️ Додай це
+    email: true,
+    login: true,
+    pro: true,
+    type: true,
+    tariff: true,
+    proUntil: true,
+    paymentHistory: true,
+    plate: true,
+  },
+});
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });

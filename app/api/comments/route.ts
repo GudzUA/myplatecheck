@@ -10,6 +10,7 @@ export async function POST(req: Request) {
     const newComment = await prisma.comment.create({
   data: {
     author: body.author || "Гість",
+    userId: body.userId,
     plate: body.plate,
     province: body.province,
     comment: body.comment,
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
     badges: Array.isArray(body.badges) ? body.badges : [],
   },
 });
+
 
     console.log("✅ Коментар збережено:", newComment);
     return NextResponse.json(newComment);

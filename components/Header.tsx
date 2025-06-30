@@ -151,7 +151,7 @@ const handleMouseLeave = () => {
   return (
     <>
       <nav className="bg-[url('/img/header-bg.png')] bg-cover bg-center text-white shadow-md px-4 py-2">
-        <div className="max-w-7xl mx-auto">
+        <div className="w-full px-4 md:px-8">
           {/* 🖥 Desktop */}
           <div className="hidden md:flex items-center justify-between gap-6">
             <Link href="/" className="w-[160px] h-auto">
@@ -165,7 +165,7 @@ const handleMouseLeave = () => {
   />
 </Link>
 
-            <ul className="flex flex-row space-x-4 text-[17px] font-semibold tracking-wide uppercase">
+            <ul className="flex flex-row space-x-4 text-[17px] font-semibold tracking-wide uppercase whitespace-nowrap overflow-hidden">
               <li><Link href="/add" className="hover:text-blue-300 transition">{t.comments}</Link></li>
               <li><Link href="/rankings" className="hover:text-blue-300 transition">{t.rating}</Link></li>
               <li><Link href="/shop" className="hover:text-blue-300 transition">{t.shop_title}</Link></li>
@@ -223,7 +223,7 @@ const handleMouseLeave = () => {
                 <option value="UA">UA</option>
               </select>
               {user ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden max-w-[250px] truncate">
                   <Link href="/account" className="underline uppercase">{user.login}</Link>
                   {user.pro && <span className="bg-yellow-400 text-white px-2 py-0.5 rounded text-xs uppercase">⭐ PRO</span>}
                   <button onClick={() => {

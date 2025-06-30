@@ -136,6 +136,7 @@ export default function LoginRegisterModal({ onClose }: { onClose: () => void })
                 placeholder={t.plate_placeholder}
                 value={plate}
                 onChange={(e) => setPlate(e.target.value.toUpperCase())}
+                 maxLength={7}
                 className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </>
