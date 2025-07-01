@@ -23,6 +23,8 @@ model User {
   trackedPlates        Json?
   paymentHistory       Json?
   passwordResetTokenId String?
+  unsubscribeToken     String?  @unique
+  unsubscribed         Boolean  @default(false)
 }
 
 model PasswordResetToken {
@@ -45,7 +47,7 @@ model Comment {
   badges    Json?
   pending   Boolean  @default(false)
   parentId  String?
-  userId    String
+  userId    String?
 
   // No relations — just logic in code
   // replies    Comment[]   @relation("ReplyThread", fields: [id], references: [parentId])
@@ -106,4 +108,10 @@ model PaymentHistory {
   amount    Int
   currency  String?
   createdAt DateTime @default(now())
+}
+
+model Unsubscribe {
+  id     String   @id @default(cuid())
+  email  String   @unique
+  date   DateTime @default(now())
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { assignBadges } from "@/utils/badges";
+import { randomUUID } from "crypto";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -56,6 +57,8 @@ export async function POST(req: Request) {
         plate,
         password,
         type: "registered",
+        unsubscribeToken: randomUUID(),
+        unsubscribed: false,
       },
     });
 

@@ -253,7 +253,7 @@ const handleMouseLeave = () => {
           <div className="md:hidden flex flex-col gap-2">
             {/* Line 1: Logo + Search */}
             <div className="flex items-center justify-between gap-2">
-             <div className="w-[140px] h-auto">
+             <Link href="/" className="w-[160px] h-auto cursor-pointer">
   <Image
     src="/img/logo.png"
     alt="Logo"
@@ -262,7 +262,7 @@ const handleMouseLeave = () => {
     className="w-[140px] h-[50px]"
     priority
   />
-</div>
+</Link>
 
               <form onSubmit={handleSearch} className="flex items-center gap-2">
                 <input

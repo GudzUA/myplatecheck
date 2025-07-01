@@ -3,10 +3,16 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
     const result = await prisma.driverRating.groupBy({
       by: ["plate", "province"],
       where: {
         type: "down",
+        createdAt: {
+          gte: startOfMonth, // ⬅️ фільтрація лише з початку місяця
+        },
       },
       _count: {
         id: true,

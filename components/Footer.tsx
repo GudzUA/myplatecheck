@@ -18,6 +18,9 @@ export default function Footer() {
        {" "}
       |{" "}
       <Link href="/about" className="underline hover:text-blue-300">{t.about}</Link>
+       {" "}
+      |{" "}
+      <Link href="/about" className="underline hover:text-blue-300">{t.polityca}</Link>
     </footer>
   );
 }

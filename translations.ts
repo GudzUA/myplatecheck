@@ -231,6 +231,7 @@ rules_full: `1. Відповідальність користувача
     shop_desc: "Офіційний мерч нашого проєкту — покажи свою підтримку!",
     main_plate2: "Основний номер", 
     extra_plates: "Додаткові номери",
+    polityca: "Політика конд...",
 badges_label: "Значки",
 badge_pro: "PRO",
 badge_top_contributor: "ТОП",
@@ -347,7 +348,7 @@ badge_liker: "Лайкер",
     draw_grand_prize: "Головний приз тижня — комплект зимової гуми для твого авто.",
     draw_note: "Участь добровільна. Порушення анулюють участь у розіграші.",
     radio_draw_rules: "Правила розіграшу",
-
+    unsubscribe_notice: "Якщо ви не хочете більше отримувати такі листи, <a href='{url}'>відпишіться тут</a>.",
 
   },
 
@@ -582,7 +583,8 @@ And everyone who shares a photo becomes part of that change.`,
     pro_failed: "Payment creation failed. Please try again later.",
     payment_processing: "Processing your payment...",
     shop_desc: "Official project merchandise — show your support!",
-    extra_plates: "Extra plates", 
+    extra_plates: "Extra plates",
+    polityca: "Politics of cond...", 
 badges_label: "Badges",
 badge_pro: "PRO",
 badge_top_contributor: "Top",
@@ -698,7 +700,7 @@ email_send_error: "Failed to send email. Try again later.",
     draw_grand_prize: "The weekly grand prize — a set of winter tires for your car.",
     draw_note: "Participation is voluntary. Any violation disqualifies the user.",
     radio_draw_rules: "Draw rules",
-    
+    unsubscribe_notice: "If you no longer wish to receive these emails, <a href='{url}'>unsubscribe here</a>.",
 
 },
 
@@ -934,6 +936,7 @@ Et chaque personne qui partage une photo contribue au changement.`,
     payment_processing: "Traitement du paiement...",
     shop_desc: "Produits officiels du projet — montrez votre soutien !",
     extra_plates: "Plaques supplémentaires",
+    polityca : "Politique de cond... ",
 badges_label: "Badges",
 badge_pro: "PRO user",
 badge_top_contributor: "Top",
@@ -1049,6 +1052,7 @@ email_send_error: "Échec de l'envoi de l'email. Réessayez plus tard.",
     draw_grand_prize: "Grand prix de la semaine — un ensemble de pneus d'hiver pour votre voiture.",
     draw_note: "La participation est volontaire. Toute infraction entraîne la disqualification.",
     radio_draw_rules: "Règles du tirage au sort",
-   
+    unsubscribe_notice: "Si vous ne souhaitez plus recevoir ces e-mails, <a href='{url}'>désabonnez-vous ici</a>.",
+
   }
 };

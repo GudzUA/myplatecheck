@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { translations } from "@/translations";
+import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,6 +10,13 @@ export async function POST(req: NextRequest) {
 
     if (!email || !subject || !lang) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    // ❌ Перевірка чи користувач відписався
+    const unsubscribed = await prisma.unsubscribe.findUnique({ where: { email } });
+    if (unsubscribed) {
+      console.log(`🚫 Email NOT sent — ${email} is unsubscribed`);
+      return NextResponse.json({ success: false, unsubscribed: true }, { status: 200 });
     }
 
     const transporter = nodemailer.createTransport({
@@ -23,12 +32,29 @@ export async function POST(req: NextRequest) {
     const translatedSubject = getTranslatedSubject(subject, lang);
     const translatedMessage = getTranslatedMessage(message, lang);
 
-    await transporter.sendMail({
-      from: `MyPlateCheck <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: translatedSubject,
-      html: `<p>${translatedMessage}</p>`,
-    });
+    const token = Buffer.from(`${email}:${randomUUID()}`).toString("base64url");
+const unsubscribeUrl = `https://myplatecheck.vercel.app/api/unsubscribe?token=${token}`;
+
+// 👇 Переклад повідомлення про відписку
+const t = translations[lang.toUpperCase() as "UA" | "EN" | "FR"] || translations.UA;
+const unsubscribeNotice = t.unsubscribe_notice?.replace("{url}", unsubscribeUrl) || `If you no longer want to receive these emails, click here: ${unsubscribeUrl}`;
+
+// 👇 Повне HTML повідомлення
+const htmlContent = `
+  <div style="font-family:sans-serif; font-size:14px;">
+    <p>${translatedMessage}</p>
+    <hr style="margin:20px 0; border:0; border-top:1px solid #ccc;" />
+    <p style="font-size:12px; color:#888;">${unsubscribeNotice}</p>
+  </div>
+`;
+
+// ✅ Відправка з повним HTML
+await transporter.sendMail({
+  from: `MyPlateCheck <${process.env.SMTP_USER}>`,
+  to: email,
+  subject: translatedSubject,
+  html: htmlContent,
+});
 
     return NextResponse.json({ success: true });
   } catch (error) {
