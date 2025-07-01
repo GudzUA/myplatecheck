@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 import { translations } from "@/translations";
 import { randomUUID } from "crypto";
+import { prisma } from "@/lib/prisma";
+
 
 export async function POST(req: NextRequest) {
   try {
