@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     proUntil: true,
     paymentHistory: true,
     plate: true,
+    joinRadioDraw: true,
   },
 });
 

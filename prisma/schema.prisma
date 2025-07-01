@@ -10,9 +10,10 @@ datasource db {
 model User {
   id                   String    @id @default(cuid())
   email                String    @unique
-  login                String  
+  login                String
   plate                String
   password             String
+  joinRadioDraw        Boolean   @default(false)
   type                 String    @default("registered")
   usedInitialLimit     Boolean?  @default(false)
   pro                  Boolean?  @default(false)
@@ -22,7 +23,6 @@ model User {
   trackedPlates        Json?
   paymentHistory       Json?
   passwordResetTokenId String?
- 
 }
 
 model PasswordResetToken {
@@ -44,7 +44,7 @@ model Comment {
   media     Json?
   badges    Json?
   pending   Boolean  @default(false)
-  parentId  String? // no foreign key
+  parentId  String?
   userId    String
 
   // No relations — just logic in code
@@ -96,4 +96,14 @@ model ReplyRating {
   createdAt DateTime @default(now())
 
   @@unique([replyId, email])
+}
+
+model PaymentHistory {
+  id        String   @id @default(cuid())
+  email     String
+  type      String
+  details   String?
+  amount    Int
+  currency  String?
+  createdAt DateTime @default(now())
 }

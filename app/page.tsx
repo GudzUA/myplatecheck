@@ -41,7 +41,7 @@ export default function HomePage() {
   const t = translations[lang];
   const [comments, setComments] = useState<Comment[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [worstDrivers, setWorstDrivers] = useState<{ plate: string; dislikes: number }[]>([]);
+  const [worstDrivers, setWorstDrivers] = useState<{ plate: string; province: string; dislikes: number }[]>([]);
   const [userType, setUserType] = useState<"guest" | "free" | "pro">("guest");
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [clientDates, setClientDates] = useState<Record<string, string>>({});
@@ -147,7 +147,7 @@ async function fetchComments() {
     // Найгірші водії за дизлайками
 // Замість localStorage — запит до API
 const resWorst = await fetch("/api/comment-rating/top-worst");
-const worst: { plate: string; dislikes: number }[] = await resWorst.json();
+const worst: { plate: string; province: string; dislikes: number }[] = await resWorst.json();
 setWorstDrivers(worst);
 
   } catch (error) {
@@ -407,7 +407,7 @@ useEffect(() => {
   {worstDrivers.map((item, index) => (
     <li key={index}>
       <Link
-  href={`/plate/${encodeURIComponent(item.plate)}`}
+  href={`/plate/${encodeURIComponent(item.province)}/${encodeURIComponent(item.plate)}`}
   className="hover:underline"
 >
   {item.plate}

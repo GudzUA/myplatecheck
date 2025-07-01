@@ -6,7 +6,13 @@ import { translations } from "../translations";
 import Link from "next/link";
 import { assignBadges } from "../utils/badges";
 
-export default function LoginRegisterModal({ onClose }: { onClose: () => void }) {
+export default function LoginRegisterModal({
+  onClose,
+  promoCode,
+}: {
+  onClose: () => void;
+  promoCode?: string;
+}) {
   const [email, setEmail] = useState("");
   const [login, setLogin] = useState("");
   const [plate, setPlate] = useState("");
@@ -15,6 +21,53 @@ export default function LoginRegisterModal({ onClose }: { onClose: () => void })
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
+
+  const activatePromo = async (email: string): Promise<boolean> => {
+    if (!promoCode || promoCode !== "PRO2025") return false;
+    try {
+      const res = await fetch("/api/activate-promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: promoCode }),
+      });
+      return res.ok;
+    } catch (err) {
+      console.error("❌ Promo activation error:", err);
+      return false;
+    }
+  };
+
+  const refreshUserAndLogin = async (email: string) => {
+    try {
+      const res = await fetch(`/api/auth/check-user?email=${email}`);
+      const user = await res.json();
+      console.log("✅ REFRESHED USER", user);
+
+      const userWithBadges = {
+  ...user,
+  badges: assignBadges(user),
+};
+
+localStorage.setItem("user", JSON.stringify(userWithBadges));
+
+// ✅ Діагностична перевірка
+const payments = user.paymentHistory;
+const isPro =
+  user?.pro === true ||
+  user?.type === "pro" ||
+  (Array.isArray(payments)
+    ? payments.some(p => ["promo", "manual", "stripe"].includes(p?.type))
+    : ["promo", "manual", "stripe"].includes(payments?.type));
+
+console.log("🟢 isPro =", isPro);
+
+window.dispatchEvent(new Event("userUpdated"));
+window.location.reload();
+
+    } catch (err) {
+      console.error("❌ Refresh user error:", err);
+    }
+  };
 
   const handleLogin = async () => {
     const emailClean = email.trim().toLowerCase();
@@ -31,24 +84,11 @@ export default function LoginRegisterModal({ onClose }: { onClose: () => void })
     }
 
     const found = await res.json();
-
-    if (found) {
-      if (found.pro && found.proUntil && new Date(found.proUntil) < new Date()) {
-        found.pro = false;
-        found.type = "registered";
-        delete found.proUntil;
-        delete found.tariff;
-      }
-
-      const updatedUserWithBadges = {
-        ...found,
-        badges: assignBadges(found),
-      };
-
-      localStorage.setItem("user", JSON.stringify(updatedUserWithBadges));
-      window.dispatchEvent(new Event("userUpdated"));
-      window.location.reload();
+    const activated = await activatePromo(emailClean);
+    if (!activated && promoCode === "PRO2025") {
+      alert("Промокод не активовано. Можливо, вже використано.");
     }
+    await refreshUserAndLogin(found.email);
   };
 
   const handleRegister = async () => {
@@ -73,7 +113,13 @@ export default function LoginRegisterModal({ onClose }: { onClose: () => void })
     const res = await fetch("/api/auth", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: emailClean, login, plate, password, type: "register" }),
+      body: JSON.stringify({
+        email: emailClean,
+        login,
+        plate,
+        password,
+        type: "register",
+      }),
     });
 
     if (!res.ok) {
@@ -82,15 +128,11 @@ export default function LoginRegisterModal({ onClose }: { onClose: () => void })
       return;
     }
 
-    const newUser = await res.json();
-    const newUserWithBadges = {
-      ...newUser,
-      badges: assignBadges(newUser),
-    };
-
-    localStorage.setItem("user", JSON.stringify(newUserWithBadges));
-    window.dispatchEvent(new Event("userUpdated"));
-    window.location.reload();
+    const activated = await activatePromo(emailClean);
+    if (!activated && promoCode === "PRO2025") {
+      alert("Промокод не активовано. Можливо, вже використано.");
+    }
+    await refreshUserAndLogin(emailClean);
   };
 
   return (

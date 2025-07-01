@@ -18,6 +18,12 @@ type User = {
   email?: string;
   badges?: string[];
 };
+type RatingData = {
+  up: number;
+  down: number;
+  userVote?: "up" | "down";
+};
+
 
 type MediaItem = { url: string; type: string };
 type Comment = {
@@ -55,7 +61,7 @@ export default function PlatePage() {
   const [showLogin, setShowLogin] = useState(false);
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
   const [embedHtmlMap, setEmbedHtmlMap] = useState<{ [id: string]: string }>({});
-
+  const [ratingsMap, setRatingsMap] = useState<Record<string, RatingData>>({});
 useEffect(() => {
   async function loadComments() {
     try {
@@ -117,6 +123,20 @@ useEffect(() => {
   loadComments();
 }, [plateCode, provinceCode]);
 
+useEffect(() => {
+  if (comments.length === 0) return;
+
+  const ids = comments.map(c => c.id).join(",");
+  const stored = localStorage.getItem("user");
+  const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
+
+  fetch(`/api/rating/batch?ids=${ids}&email=${email}`)
+    .then(res => res.json())
+    .then((data: Record<string, RatingData>) => {
+      setRatingsMap(data);
+    })
+    .catch(err => console.error("❌ Rating batch error:", err));
+}, [comments]);
 
 
 function getEmbedHTML(url: string): string | null {
@@ -365,7 +385,7 @@ useEffect(() => {
 )}
 
   <div className="mt-2 flex justify-end items-center gap-3">
-  <RatingBlock commentId={c.id} />
+  <RatingBlock commentId={c.id} allRatings={ratingsMap} />
   </div>
 </div>
 
@@ -382,7 +402,7 @@ useEffect(() => {
 </div>
        <TranslatedComment id={reply.id} text={reply.comment} />
         <div className="mt-2 flex justify-end">
-          <ReplyRatingBlock replyId={reply.id} />
+         <ReplyRatingBlock replyId={reply.id} />
         </div>
       </div>
     ))}

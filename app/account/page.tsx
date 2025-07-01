@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "../../context/LanguageContext";
 import { translations } from "../../translations";
 import Image from "next/image";
-
+import { Switch } from "@/components/ui/switch";
 
 type Comment = {
   id: string;
@@ -46,6 +46,7 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState<"comments" | "replies">("comments");
   const [newPlate, setNewPlate] = useState("");
   const [selectedPlateFilter, setSelectedPlateFilter] = useState<string | null>(null);
+  const [joinRadioDraw, setJoinRadioDraw] = useState(false);
 
 useEffect(() => {
   const stored = localStorage.getItem("user");
@@ -79,6 +80,7 @@ useEffect(() => {
         router.push("/");
       } else {
         setUser(data);
+      setJoinRadioDraw(data.joinRadioDraw || false);
 
         // ✅ Після отримання user — отримати коментарі
         fetch("/api/comments/by-user", {
@@ -333,6 +335,30 @@ const handleDeleteComment = async (id: string) => {
   }
 };
 
+const handleToggleDraw = async (checked: boolean) => {
+  try {
+    const stored = localStorage.getItem("user");
+    const user = stored ? JSON.parse(stored) : null;
+    if (!user?.email) return;
+
+    const res = await fetch("/api/account/join-draw", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, join: checked }),
+    });
+
+    if (res.ok) {
+      setJoinRadioDraw(checked);
+      const updated = { ...user, joinRadioDraw: checked };
+      localStorage.setItem("user", JSON.stringify(updated));
+      window.dispatchEvent(new Event("userUpdated"));
+    }
+  } catch (err) {
+    console.error("❌ Failed to update join draw setting:", err);
+  }
+};
+
+
   return (
      <>
 {user?.email === "gudz80@gmail.com" && (
@@ -398,6 +424,24 @@ const handleDeleteComment = async (id: string) => {
 )}
 
             </div>
+
+{user?.pro && (
+  <div className="mt-6 flex items-center justify-between border rounded-xl p-4">
+    <div>
+      <p className="font-medium text-gray-800">{t.radio_draw_title}</p>
+      <p className="text-sm text-gray-600">{t.radio_draw_desc}</p>
+      <a href="/draw" className="mt-2 inline-block text-sm text-blue-700 underline hover:text-blue-900 transition"  
+      >
+        📜 {t.radio_draw_rules}
+      </a>
+    </div>
+    <Switch
+      checked={joinRadioDraw}
+      onCheckedChange={handleToggleDraw}
+    />
+  </div>
+)}
+
 
             <div className="text-sm text-gray-700">
   {t.main_plate}: <strong>{user.plate || t.not_set}</strong>{" "}

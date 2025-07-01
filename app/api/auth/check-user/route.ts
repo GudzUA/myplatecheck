@@ -1,21 +1,40 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // <== виправлено
+import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const login = searchParams.get("login");
+  const email = searchParams.get("email");
+  const includePayments = searchParams.get("includePayments") === "true";
 
-  if (!login) {
-    return NextResponse.json({ error: "Missing login" }, { status: 400 });
+  if (!email) {
+    return NextResponse.json({ error: "Missing email" }, { status: 400 });
   }
 
-  const user = await prisma.user.findFirst({
-    where: { login }, // 👈 правильний ключ (з малої)
-  });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        login: true,
+        plate: true,
+        type: true,
+        pro: true,
+        proUntil: true,
+        tariff: true,
+        usedInitialLimit: true,
+        createdAt: true,
+        paymentHistory: includePayments,
+      },
+    });
 
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
+  } catch (err) {
+    console.error("❌ CHECK-USER ERROR:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-
-  return NextResponse.json({ ok: true });
 }
