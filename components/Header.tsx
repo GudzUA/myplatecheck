@@ -165,7 +165,7 @@ const handleMouseLeave = () => {
   />
 </Link>
 
-            <ul className="flex flex-row space-x-4 text-[17px] font-semibold tracking-wide uppercase whitespace-nowrap overflow-hidden">
+             <ul className="flex flex-row space-x-4 text-[17px] font-semibold tracking-wide uppercase">
               <li><Link href="/add" className="hover:text-blue-300 transition">{t.comments}</Link></li>
               <li><Link href="/rankings" className="hover:text-blue-300 transition">{t.rating}</Link></li>
               <li><Link href="/shop" className="hover:text-blue-300 transition">{t.shop_title}</Link></li>
@@ -187,7 +187,7 @@ const handleMouseLeave = () => {
       ].map((prov) => (
         <li key={prov}>
           <Link
-            href={`/province/${prov.toLowerCase().replace(/\s+/g, "-")}`}
+            href={`/province/${prov.toLowerCase().replace(/\s+/g, "_")}`}
             className="block px-4 py-2 text-gray-800 hover:bg-blue-50 hover:text-blue-700 transition"
           >
             {prov}
@@ -358,7 +358,7 @@ const handleMouseLeave = () => {
           ].map((prov) => (
             <li key={prov}>
               <Link
-                href={`/province/${prov.toLowerCase().replace(/\s+/g, "-")}`}
+                href={`/province/${prov.toLowerCase().replace(/\s+/g, "_")}`}
                 onClick={() => {
                   setShowProvincesMobile(false);
                   setMenuOpen(false);

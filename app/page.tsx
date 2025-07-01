@@ -345,7 +345,8 @@ useEffect(() => {
 )}
 
 
-                  <div className="flex justify-end"><RatingBlock commentId={c.id}email={c.email}initialVotes={ratings[c.id]}/></div>
+                  <div className="flex justify-end"><RatingBlock commentId={c.id} email={c.email} allRatings={ratings} />
+                  </div>
                 </div>
               );
             })}
@@ -404,17 +405,15 @@ useEffect(() => {
   {t.worst_drivers_for} {currentMonth}
 </h2>
 <ol className="list-decimal list-inside space-y-2 text-blue-800 font-semibold">
-  {worstDrivers.map((item, index) => (
-    <li key={index}>
-      <Link
-  href={`/plate/${encodeURIComponent(item.province)}/${encodeURIComponent(item.plate)}`}
-  className="hover:underline"
->
-  {item.plate}
-</Link>{" "}
-      — 👎 {item.dislikes}
-    </li>
-  ))}
+
+  {worstDrivers.map((item: { plate: string; province: string; dislikes: number }, index) => (
+  <li key={index} className="flex items-center justify-between">
+  <Link href={`/plate/${encodeURIComponent(item.province)}/${encodeURIComponent(item.plate)}`} className="hover:underline">
+    {item.plate}
+  </Link>
+  <span>👎 {item.dislikes}</span>
+</li>
+))}
 </ol>
 
 </aside>

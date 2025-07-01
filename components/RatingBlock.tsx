@@ -27,23 +27,14 @@ export default function RatingBlock({ commentId, email, allRatings }: Props) {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    if (allRatings && allRatings[commentId]) {
-      const data = allRatings[commentId];
-      setUpVotes(data.up);
-      setDownVotes(data.down);
-      setVoted(data.userVote || null);
-    } else {
-      // fallback GET-запит, якщо allRatings не переданий
-      fetch(`/api/rating?commentId=${commentId}&email=${email || "guest"}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setUpVotes(data.up);
-          setDownVotes(data.down);
-          if (data.userVote) setVoted(data.userVote);
-        })
-        .catch((err) => console.error("❌ Load rating error:", err));
-    }
-  }, [commentId, email, allRatings]);
+  if (allRatings && allRatings[commentId]) {
+    const data = allRatings[commentId];
+    setUpVotes(data.up);
+    setDownVotes(data.down);
+    setVoted(data.userVote || null);
+  }
+}, [commentId, allRatings]); 
+
 
   const handleVote = async (type: "up" | "down") => {
     if (voted) {

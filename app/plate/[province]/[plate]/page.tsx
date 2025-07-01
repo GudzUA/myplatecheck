@@ -62,6 +62,8 @@ export default function PlatePage() {
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
   const [embedHtmlMap, setEmbedHtmlMap] = useState<{ [id: string]: string }>({});
   const [ratingsMap, setRatingsMap] = useState<Record<string, RatingData>>({});
+
+
 useEffect(() => {
   async function loadComments() {
     try {
@@ -385,7 +387,7 @@ useEffect(() => {
 )}
 
   <div className="mt-2 flex justify-end items-center gap-3">
-  <RatingBlock commentId={c.id} allRatings={ratingsMap} />
+  <RatingBlock commentId={c.id} email={c.email} allRatings={ratingsMap} />
   </div>
 </div>
 
