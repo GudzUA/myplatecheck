@@ -44,9 +44,9 @@ export default function RatingPage() {
         <table className="w-full bg-white rounded-xl shadow-md text-sm overflow-hidden">
           <thead className="bg-blue-100 text-blue-900 uppercase text-xs tracking-wide">
             <tr>
-              <th className="py-3 px-4 text-left">#</th>
-              <th className="py-3 px-4 text-left">{t.plate_column}</th>
-              <th className="py-3 px-4 text-left">{t.dislikes_column}</th>
+              <th className="py-2 px-3 text-left">#</th>
+              <th className="py-2 px-3 text-left">{t.plate_column}</th>
+              <th className="py-2 px-3 text-left">{t.dislikes_column}</th>
             </tr>
           </thead>
           <tbody>
@@ -56,8 +56,8 @@ export default function RatingPage() {
 
   return (
     <tr key={item.plate} className="border-t hover:bg-blue-50 transition">
-      <td className="py-3 px-4 font-medium">{index + 1}</td>
-      <td className="py-3 px-4">
+      <td className="py-2 px-3 font-medium">{index + 1}</td>
+      <td className="py-2 px-3">
         <Link href={`/plate/${slug}/${item.plate}`}>
           <div className="relative w-[90px] h-[45px]">
             <Image

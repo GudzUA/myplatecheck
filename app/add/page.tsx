@@ -296,13 +296,12 @@ await fetch("/api/comments", {
   if (!mounted) return null; // ⬅️ оце встав
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-10">
+    <main className="w-full max-w-2xl mx-auto px-4 py-10 sm:px-6 sm:max-w-xl md:max-w-2xl">
       <h1 className="text-3xl font-bold text-blue-800 mb-8 text-center">{t.add_comment}</h1>
 
       {mounted && (
       <form onSubmit={handleSubmit}
-        className="bg-white p-8 rounded-xl shadow-xl space-y-6"
-      >
+        className="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-xl space-y-4 sm:space-y-6 text-sm sm:text-base">
         <div>
           <label className="block font-medium text-gray-700 mb-1">{t.plate_label}</label>
           <input
@@ -313,7 +312,7 @@ await fetch("/api/comments", {
              if (raw.length <= 7) setPlate(raw);
              }}
             placeholder={t.placeholder_example}
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-2 sm:p-3 text-sm sm:text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             maxLength={7}
           />
         </div>
@@ -323,7 +322,7 @@ await fetch("/api/comments", {
 <select
   value={province}
   onChange={(e) => setProvince(e.target.value)}
-  className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+  className="w-full p-2 sm:p-3 text-sm sm:text-base border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
   required
 >
   <option value="">{t.province_placeholder}</option>
@@ -351,7 +350,7 @@ await fetch("/api/comments", {
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             rows={4}
-            className="w-full mt-1 p-2 border border-gray-300 rounded"
+            className="w-full p-2 sm:p-3 text-sm sm:text-base border border-gray-300 rounded"
             placeholder={t.comment_placeholder}
             required
           />

@@ -12,16 +12,17 @@ model User {
   email                String    @unique
   login                String
   plate                String
+  province             String?
   password             String
-  joinRadioDraw        Boolean   @default(false)
   type                 String    @default("registered")
-  usedInitialLimit     Boolean?  @default(false)
   pro                  Boolean?  @default(false)
-  proUntil             DateTime?
   tariff               String?
+  paymentHistory       Json?
+  joinRadioDraw        Boolean   @default(false)
+  usedInitialLimit     Boolean?  @default(false)
+  proUntil             DateTime?
   createdAt            DateTime  @default(now())
   trackedPlates        Json?
-  paymentHistory       Json?
   passwordResetTokenId String?
   unsubscribeToken     String?  @unique
   unsubscribed         Boolean  @default(false)

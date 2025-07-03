@@ -6,6 +6,8 @@ import { translations } from "../translations";
 import Link from "next/link";
 import { assignBadges } from "../utils/badges";
 
+
+
 export default function LoginRegisterModal({
   onClose,
   promoCode,
@@ -21,6 +23,7 @@ export default function LoginRegisterModal({
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [province, setProvince] = useState("");
 
   const activatePromo = async (email: string): Promise<boolean> => {
     if (!promoCode || promoCode !== "PRO2025") return false;
@@ -92,7 +95,7 @@ window.location.reload();
   };
 
   const handleRegister = async () => {
-    if (!email || !login || !plate || !password || !confirm) {
+    if (!email || !plate || !password || !confirm) {
       alert(t.fill_all_fields);
       return;
     }
@@ -119,6 +122,7 @@ window.location.reload();
         plate,
         password,
         type: "register",
+        province,
       }),
     });
 
@@ -137,7 +141,7 @@ window.location.reload();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
+      <div className="bg-white rounded-xl shadow-2xl w-[90%] max-w-md p-4 relative sm:w-full">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
@@ -161,7 +165,7 @@ window.location.reload();
                 setEmail(val.trim().toLowerCase());
               }
             }}
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full py-2 px-3 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
           {mode === "register" && (
@@ -171,16 +175,37 @@ window.location.reload();
                 placeholder={t.login_placeholder_short}
                 value={login}
                 onChange={(e) => setLogin(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <input
-                type="text"
-                placeholder={t.plate_placeholder}
-                value={plate}
-                onChange={(e) => setPlate(e.target.value.toUpperCase())}
-                 maxLength={7}
-                className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+                className="w-full py-2 px-3 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+              <div className="flex flex-col sm:flex-row gap-3">
+  <input
+    type="text"
+    placeholder={t.plate_placeholder}
+    value={plate}
+    onChange={(e) => setPlate(e.target.value.toUpperCase())}
+    maxLength={7}
+    className="w-full py-2 px-3 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+
+ <select
+  value={province}
+  onChange={(e) => setProvince(e.target.value)}
+  className="w-full py-2 px-3 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 max-h-48 overflow-y-auto"
+>
+ <option value="">{t.province_placeholder}</option>
+  <option value="ontario">Ontario</option>
+  <option value="quebec">Quebec</option>
+  <option value="manitoba">Manitoba</option>
+  <option value="alberta">Alberta</option>
+  <option value="british_columbia">British Columbia</option>
+  <option value="saskatchewan">Saskatchewan</option>
+  <option value="nova_scotia">Nova Scotia</option>
+  <option value="new_brunswick">New Brunswick</option>
+  <option value="prince_edward_island">Prince Edward Island</option>
+  <option value="newfoundland_and_labrador">Newfoundland and Labrador</option>
+  <option value="yukon">Yukon</option>
+  <option value="northwest_territories">Northwest Territories</option>
+  <option value="nunavut">Nunavut</option>  </select>
+</div>
             </>
           )}
 
@@ -189,7 +214,7 @@ window.location.reload();
             placeholder={t.password_placeholder}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full py-2 px-3 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
           {mode === "register" && (
@@ -198,13 +223,13 @@ window.location.reload();
               placeholder={t.confirm_password_placeholder}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full py-2 px-3 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           )}
 
           <button
             onClick={mode === "login" ? handleLogin : handleRegister}
-            className="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700 transition"
+            className="w-full py-2 px-2 text-sm bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
           >
             {mode === "login" ? t.login_title : t.register_title}
           </button>

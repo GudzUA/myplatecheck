@@ -13,11 +13,9 @@ import { translations } from "../../../../translations";
 import Image from "next/image";
 import TranslatedComment from "../../../../components/TranslatedComment";
 import BadgeList from "../../../../components/BadgeList";
+import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
 
-type User = {
-  email?: string;
-  badges?: string[];
-};
+
 type RatingData = {
   up: number;
   down: number;
@@ -240,23 +238,6 @@ const handleReplySubmit = async (parentId: string) => {
 
   const rootComments = comments.filter(c => !c.parentId);
 
-function getBadgesForUser(email?: string): string[] {
-  if (!email) return [];
-
-  try {
-    const raw = localStorage.getItem("users");
-    if (!raw) return [];
-
-    const users = JSON.parse(raw);
-    const key = email.trim().toLowerCase();
-
-    const match = users.find((u: User) => u.email?.trim().toLowerCase() === key);
-    return match?.badges || [];
-  } catch {
-    return [];
-  }
-}
-
 interface TikTokWindow extends Window {
   tiktokEmbedLoad?: () => void;
 }
@@ -313,15 +294,15 @@ useEffect(() => {
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-start justify-start gap-6 mb-6">
-        <div className="relative inline-block w-[180px] h-[90px]">
+        <div className="relative inline-block w-[110px] h-[55px]">
           <Image
   src={plateImage}
   alt={`${provinceCode} plate`}
-  width={180}
-  height={90}
+  width={150}
+  height={75}
   className="w-full h-full object-contain"
 />
-          <span className="absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[28px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">{plateCode}</span>
+          <span className="absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[18px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">{plateCode}</span>
         </div>
         <div className="flex flex-col justify-center">
           <div className="text-xl font-semibold text-gray-800 mb-2">CAR</div>
@@ -344,12 +325,16 @@ useEffect(() => {
 
             return (
               <li key={c.id} className="mb-8">
-                <div className="bg-white p-4 rounded-xl shadow-md border border-blue-200 space-y-2">
+                <div className="bg-white p-3 rounded-xl shadow-md border border-blue-200 space-y-2">
 <div className="text-sm text-gray-600 text-right font-medium flex justify-end items-center gap-1">
   <span className="flex items-center gap-2">
-    <BadgeList badges={c.badges || []} />
-    <strong>{c.author || t.anonymous}</strong> · <strong>{c.province}</strong> · {replyDates[c.id] || ""}
-  </span>
+  <BadgeList badges={c.badges || []} />
+  <strong>{c.author || t.anonymous}</strong>
+</span>
+<span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
+  {provinceAbbreviations[c.province.toLowerCase()] || c.province}
+</span>
+· {replyDates[c.id] || ""}
 </div>
 <TranslatedComment id={c.id} text={c.comment} />
 
@@ -370,8 +355,8 @@ useEffect(() => {
           key={idx}
           src={m.url}
           alt={`media-${idx}`}
-          width={200}
-          height={150}
+          width={100}
+          height={100}
           className="cursor-pointer rounded hover:shadow-lg hover:scale-105 transition object-contain"
         />
       ) : m.type.startsWith("video") ? (
@@ -396,11 +381,11 @@ useEffect(() => {
              {replyMap[c.id].map((reply) => (
                    <div
                  key={reply.id}
-        className="ml-auto mr-2 w-[92%] bg-white border border-blue-100 p-4 rounded-lg shadow-sm"
+        className="ml-auto mr-2 w-[92%] bg-white border border-blue-100 px-3 py-1 rounded-lg shadow-sm"
       >
        <div className="text-sm text-gray-600 text-right font-medium flex justify-end items-center gap-1">
-  <BadgeList badges={getBadgesForUser(reply.email)} />
-  <strong>{reply.author || t.anonymous}</strong> · <strong>{reply.province}</strong> · {replyDates[reply.id] || ""}
+  <BadgeList badges={c.badges || []} />
+  <strong>{reply.author || t.anonymous}</strong> · <strong>{provinceAbbreviations[c.province.toLowerCase()] || c.province}</strong> · {replyDates[reply.id] || ""}
 </div>
        <TranslatedComment id={reply.id} text={reply.comment} />
         <div className="mt-2 flex justify-end">
@@ -413,7 +398,7 @@ useEffect(() => {
 
 
 {showReplyId === c.id && (
-  <div className="ml-auto mr-2 w-[92%] bg-gray-50 border border-blue-100 p-4 rounded-lg shadow-sm mt-3">
+  <div className="ml-auto mr-2 w-[92%] bg-gray-50 border border-blue-100 p-3 rounded-lg shadow-sm mt-3">
     <p className="text-sm font-semibold text-gray-800 mb-2">{t.your_reply}</p>
     <textarea
       value={replyText}
@@ -424,7 +409,7 @@ useEffect(() => {
     <div className="flex gap-2 mt-3 justify-end">
       <button
         onClick={() => handleReplySubmit(c.id)}
-        className="bg-blue-800 text-white px-4 py-1.5 rounded-md text-sm hover:bg-blue-900 transition"
+        className="bg-blue-800 text-white px-2 py-1.5 rounded-md text-sm hover:bg-blue-900 transition"
       >
         {t.send}
       </button>

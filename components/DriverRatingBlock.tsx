@@ -65,21 +65,21 @@ useEffect(() => {
 
   return (
     <>
-      <div className="flex items-center gap-2 text-sm text-gray-800 mt-2">
-        <span className="font-semibold text-base mr-2">{t.rate_driver}</span>
+      <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-800 mt-1 sm:mt-2">
+       <span className="font-semibold text-sm sm:text-base mr-1 sm:mr-2">{t.rate_driver}</span>
         <button
           onClick={() => handleVote("up")}
-          className={`px-2 py-1 rounded border ${
-            voted === "up" ? "bg-green-200" : "bg-white"
-          }`}
+            className={`px-1 py-[2px] sm:px-1.5 sm:py-1 rounded border text-xs sm:text-sm ${
+               voted === "up" ? "bg-green-200" : "bg-white"
+          } border`}
         >
           👍 {upVotes}
         </button>
         <button
           onClick={() => handleVote("down")}
-          className={`px-2 py-1 rounded border ${
+          className={`px-1 py-[2px] sm:px-1.5 sm:py-1 rounded border text-xs sm:text-sm ${
             voted === "down" ? "bg-red-200" : "bg-white"
-          }`}
+          } border`}
         >
           👎 {downVotes}
         </button>

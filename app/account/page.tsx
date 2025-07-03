@@ -7,6 +7,7 @@ import { translations } from "../../translations";
 import Image from "next/image";
 import { Switch } from "@/components/ui/switch";
 
+
 type Comment = {
   id: string;
   comment: string;
@@ -444,7 +445,7 @@ const handleToggleDraw = async (checked: boolean) => {
 
 
             <div className="text-sm text-gray-700">
-  {t.main_plate}: <strong>{user.plate || t.not_set}</strong>{" "}
+  {t.main_plate}: <strong>{user.plate || t.not_set}</strong>{" "} 
   <button onClick={handleChangePlate} className="underline ml-1 text-blue-700"> {t.change}</button>
 </div>
 

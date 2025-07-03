@@ -62,17 +62,17 @@ export default function ReplyRatingBlock({ replyId }: { replyId: string }) {
       <span className="mr-2">{t.rate_reply}</span>
       <button
         onClick={() => handleVote("up")}
-        className={`px-2 py-1 rounded border ${
+        className={`px-1 py-0.5 rounded ${
           voted === "up" ? "bg-green-200" : "bg-white"
-        }`}
+        } border`}
       >
         👍 {upVotes}
       </button>
       <button
         onClick={() => handleVote("down")}
-        className={`px-2 py-1 rounded border ${
+        className={`px-1 py-0.5 rounded border ${
           voted === "down" ? "bg-red-200" : "bg-white"
-        }`}
+        } border`}
       >
         👎 {downVotes}
       </button>
@@ -80,7 +80,7 @@ export default function ReplyRatingBlock({ replyId }: { replyId: string }) {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow-md text-center">
-            <p className="text-sm">{t.already_voted}</p>
+            <p className="text-xs">{t.already_voted}</p>
             <button
               onClick={() => setShowModal(false)}
               className="mt-3 px-4 py-1 bg-blue-600 text-white rounded text-sm"

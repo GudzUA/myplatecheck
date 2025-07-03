@@ -69,7 +69,7 @@ export default function RatingBlock({ commentId, email, allRatings }: Props) {
         <span className="mr-2">{t.rate_comment}</span>
         <button
           onClick={() => handleVote("up")}
-          className={`px-2 py-1 rounded ${
+          className={`px-1 py-0.5 rounded ${
             voted === "up" ? "bg-green-200" : "bg-white"
           } border`}
         >
@@ -77,7 +77,7 @@ export default function RatingBlock({ commentId, email, allRatings }: Props) {
         </button>
         <button
           onClick={() => handleVote("down")}
-          className={`px-2 py-1 rounded ${
+          className={`px-1.5 py-0.5 rounded ${
             voted === "down" ? "bg-red-200" : "bg-white"
           } border`}
         >

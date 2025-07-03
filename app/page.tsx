@@ -12,6 +12,7 @@ import NextImage from "next/image";
 import DonateButton from "../components/DonateButton";
 import BadgeList from "../components/BadgeList";
 import TranslatedComment from "../components/TranslatedComment";
+import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
 
 
 
@@ -69,44 +70,63 @@ const currentMonth = monthNames[lang][now.getMonth()];
 function getEmbedHTML(url: string): string | null {
   if (!url) return null;
 
-  // TikTok
+  // ✅ TikTok (адаптивно)
   if (url.includes("tiktok.com")) {
     const match = url.match(/\/video\/(\d+)/);
     const videoId = match?.[1];
     if (!videoId) return null;
 
     return `
-      <blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="max-width: 605px; min-width: 325px;">
-        <section></section>
-      </blockquote>
+      <div style="max-width: 100%; overflow: hidden;">
+        <blockquote class="tiktok-embed" cite="${url}" data-video-id="${videoId}" style="width: 100%; min-width: 200px;">
+          <section></section>
+        </blockquote>
+      </div>
     `;
   }
 
-  // YouTube
+  // ✅ YouTube (адаптивно)
   if (url.includes("youtube.com/watch") || url.includes("youtu.be")) {
     const match = url.match(/(?:v=|\/)([0-9A-Za-z_-]{11})/);
     if (match) {
-      return `<iframe width="100%" height="315" src="https://www.youtube.com/embed/${match[1]}" frameborder="0" allowfullscreen></iframe>`;
+      return `
+        <div style="position: relative; width: 100%; padding-top: 56.25%;">
+          <iframe 
+            src="https://www.youtube.com/embed/${match[1]}"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+            frameborder="0"
+            allowfullscreen
+          ></iframe>
+        </div>
+      `;
     }
   }
 
-  // Facebook
+  // ✅ Facebook (адаптивно)
   if (url.includes("facebook.com") && url.includes("video")) {
     const encodedUrl = encodeURIComponent(url);
     return `
-      <iframe src="https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=500"
-        width="100%" height="280" style="border:none;overflow:hidden" scrolling="no" frameborder="0"
-        allowfullscreen="true"></iframe>
+      <div style="position: relative; width: 100%; padding-top: 56.25%;">
+        <iframe 
+          src="https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false"
+          style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; overflow: hidden;"
+          scrolling="no"
+          frameborder="0"
+          allowfullscreen="true"
+        ></iframe>
+      </div>
     `;
   }
 
- // ✅ Instagram
-if (url.includes("instagram.com/p/")) {
-  return `
-    <blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14" style="width:100%; max-width:540px;">
-    </blockquote>
-  `;
-}
+  // ✅ Instagram (адаптивно)
+  if (url.includes("instagram.com/p/")) {
+    return `
+      <div style="max-width: 100%; overflow: hidden;">
+        <blockquote class="instagram-media" data-instgrm-permalink="${url}" data-instgrm-version="14" style="width: 100%;">
+        </blockquote>
+      </div>
+    `;
+  }
 
   return null;
 }
@@ -280,7 +300,7 @@ useEffect(() => {
               return (
                 <div
                   key={c.id}
-                  className="bg-white border border-blue-200 rounded-xl shadow-md p-5 space-y-3 hover:shadow-2x1 transition"
+                  className="bg-white border border-blue-200 rounded-xl shadow-md p-3 space-y-2 hover:shadow-2x1 transition"
                 >
                   <Link href={`/plate/${encodeURIComponent(c.province.toLowerCase().replace(/[^\w]/gi, ""))}/${c.plate}`}>
   <div className="text-sm text-gray-500 text-right mb-1 flex items-center justify-end gap-2">
@@ -288,10 +308,12 @@ useEffect(() => {
       <BadgeList badges={c.badges || []} />
       <strong>{c.author || t.anonymous}</strong>
     </span>
-    · <strong>{c.province}</strong> · {clientDates[c.id] || ""}
+    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
+  {provinceAbbreviations[c.province.toLowerCase()] || c.province}
+</span> · {clientDates[c.id] || ""}
   </div>
 
-  <div className="relative inline-block w-[140px] h-[70px] sm:w-[180px] sm:h-[90px]">
+  <div className="relative inline-block w-[110px] h-[55px] sm:w-[150px] sm:h-[75px]">
     <Image
       src={plateImage}
       alt={`Номер ${c.plate}`}
@@ -300,7 +322,7 @@ useEffect(() => {
       className="w-full h-full object-contain"
     />
     <div className="absolute inset-0 flex items-center justify-center">
-      <span className="text-[20px] sm:text-[26px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
+      <span className="text-[15px] sm:text-[21px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
         {c.plate}
       </span>
     </div>
@@ -308,11 +330,14 @@ useEffect(() => {
 </Link>
 
 {/* Виносимо переклад + embed ПОЗА Link */}
-<TranslatedComment id={c.id} text={c.comment} />
+<div className="max-h-[4.5em] overflow-hidden text-ellipsis">
+  <TranslatedComment id={c.id} text={c.comment} />
+</div>
+
 
 {embedHtmlMap[c.id] && (
   <div className="mt-2 w-full max-w-full overflow-hidden">
-    <div className="max-w-[100%] sm:max-w-[540px] mx-auto">
+    <div className="max-w-[100%] sm:max-w-[320px] mx-auto">
       {parse(embedHtmlMap[c.id]!)}
     </div>
   </div>
@@ -327,8 +352,8 @@ useEffect(() => {
           key={idx}
           src={m.url}
           alt={`media-${idx}`}
-          width={120}
-          height={120}
+          width={100}
+          height={100}
           className="cursor-pointer rounded hover:shadow-lg hover:scale-105 transition object-contain"
           onClick={() => setFullscreenImage(m.url)}
         />
@@ -337,7 +362,7 @@ useEffect(() => {
           key={idx}
           src={m.url}
           controls
-          className="w-full max-w-[200px] h-auto rounded mt-2"
+          className="w-full max-w-[120px] h-auto rounded mt-2"
         />
       ) : null
     )}
@@ -405,17 +430,21 @@ useEffect(() => {
   {t.worst_drivers_for} {currentMonth}
 </h2>
 <ol className="list-decimal list-inside space-y-2 text-blue-800 font-semibold">
-
-  {worstDrivers.map((item: { plate: string; province: string; dislikes: number }, index) => (
-  <li key={index} className="flex items-center justify-between">
-  <Link href={`/plate/${encodeURIComponent(item.province)}/${encodeURIComponent(item.plate)}`} className="hover:underline">
-    {item.plate}
-  </Link>
-  <span>👎 {item.dislikes}</span>
-</li>
-))}
+  {worstDrivers.map((item, index) => (
+    <li key={index} className="flex items-center justify-between">
+      <Link
+        href={`/plate/${encodeURIComponent(item.province)}/${encodeURIComponent(item.plate)}`}
+        className="hover:underline"
+      >
+        {item.plate}
+        <span className="text-gray-500 text-xs ml-1">
+          ({provinceAbbreviations[item.province.toLowerCase()] || item.province})
+        </span>
+      </Link>
+      <span>👎 {item.dislikes}</span>
+    </li>
+  ))}
 </ol>
-
 </aside>
 
 

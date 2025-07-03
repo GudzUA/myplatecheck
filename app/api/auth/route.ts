@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { type, email, login, plate, password } = body;
+  const { type, email, login, plate, province, password } = body;
   const emailClean = email.trim().toLowerCase();
 
   if (type === "login") {
@@ -55,6 +55,7 @@ export async function POST(req: Request) {
         email: emailClean,
         login: login?.trim() || "", // просто записуємо, не перевіряємо
         plate,
+        province,
         password,
         type: "registered",
         unsubscribeToken: randomUUID(),

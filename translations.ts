@@ -219,6 +219,48 @@ rules_full: `1. Відповідальність користувача
 
 Це не платформа для доносів. Це платформа для відповідальності.
 І кожен, хто ділиться фото — долучається до змін.`,
+    polityca: "Політика конфіденційності",
+    polityka_title: "Політика конфіденційності",
+    polityka_fuul: `1. Які дані ми зберігаємо
+Ми зберігаємо:
+– вашу електронну пошту (email);
+– коментарі, відповіді, логін користувача;
+– фотографії та відео (у вигляді URL у базі);
+– статус PRO, історію платежів, участь у розіграші;
+– голоси за коментарі (up/down).
+
+Ми не зберігаємо IP-адреси, геолокацію, cookies, user-agent або трекінг-дані.
+
+2. Як ми використовуємо ваші дані
+Email потрібен для авторизації, повідомлень і підтримки. Коментарі, фото та відповіді — для публічного відображення. PRO-статус і логін видно іншим користувачам.
+
+3. Права на контент
+Авторські права на фото і повідомлення залишаються за вами. Ви дозволяєте показ на сайті, але ми не маємо права використовувати їх у сторонніх цілях без вашої згоди.
+
+4. Відео з інших платформ
+Відео з YouTube, TikTok, Facebook, Instagram вбудовуються напряму. Політику конфіденційності забезпечує відповідна платформа.
+
+5. PRO-підписка
+Платежі обробляються через Stripe. Ми не зберігаємо платіжні дані — тільки статус PRO і термін дії.
+
+6. Донати
+Донати — добровільна підтримка. Частина йде на розвиток сайту, частина — як винагорода автору. Ми не є благодійною організацією.
+
+7. Переклад коментарів
+Для зручності можемо автоматично перекладати коментарі іншими мовами. Оригінал зберігається, переклад — ознайомчий.
+
+8. Видалення даних
+Користувачі з PRO можуть самостійно повністю видалити акаунт через кабінет. Видаляються: email, коментарі, статус, історія.
+Якщо в коментарях були фото/відео — URL видаляються, але самі файли можуть залишитись на Firebase. Вони стають недоступними на сайті.
+
+9. Запити від органів
+Ми не маємо технічної можливості ідентифікувати користувача (немає IP). У разі запиту надається лише публічний контент.
+
+10. Обмеження відповідальності
+Контент створюється користувачами. Ми не гарантуємо його достовірність і не несемо відповідальності за повідомлення.
+
+11. Зміни до політики
+Усі зміни публікуються на цій сторінці. Якщо зміни суттєві — повідомимо вас на email.`,
     payment_history: "Історія платежів",
     plan_label: "План",
     amount: "Сума",
@@ -231,7 +273,6 @@ rules_full: `1. Відповідальність користувача
     shop_desc: "Офіційний мерч нашого проєкту — покажи свою підтримку!",
     main_plate2: "Основний номер", 
     extra_plates: "Додаткові номери",
-    polityca: "Політика конд...",
 badges_label: "Значки",
 badge_pro: "PRO",
 badge_top_contributor: "ТОП",
@@ -573,6 +614,48 @@ It’s not blame — it’s a reflection. A mirror of what the community is noti
 
 This isn’t a platform for snitching. It’s a platform for accountability.
 And everyone who shares a photo becomes part of that change.`,
+    polityca: "Privacy Policy",
+    polityka_title: "Privacy Policy",
+    polityka_fuul: `1. What data we store
+We store:
+– your email address;
+– comments, replies, and login name;
+– photos and videos (as URLs);
+– PRO status, payment history, raffle participation;
+– votes (up/down) on comments.
+
+We do not store IP addresses, location data, cookies, user-agent, or tracking data.
+
+2. How we use your data
+Email is used for login, notifications, and support. Comments and photos are shown publicly. PRO status and login may be visible to others.
+
+3. Content ownership
+You retain all rights to your photos and messages. By uploading, you allow us to display them, but we may not reuse them elsewhere without your consent.
+
+4. Videos from other platforms
+Embedded videos (YouTube, TikTok, etc.) are subject to those platforms' privacy policies.
+
+5. PRO subscription
+Payments are handled via Stripe. We don’t store your payment info — only your PRO status and expiration date.
+
+6. Donations
+Donations are voluntary support. Funds may go toward site development or serve as compensation for the creator. We are not a charity.
+
+7. Comment translation
+We may automatically translate comments using AI. The original remains stored; the translation is for convenience only.
+
+8. Data deletion
+PRO users can delete their entire account via their profile. This removes: email, comments, status, and history.
+If media URLs were in comments, they are deleted from the database, but files may remain on Firebase and become inaccessible.
+
+9. Requests from authorities
+We don’t store IP or technical identifiers, so we cannot identify users. Only public content may be shared upon official request.
+
+10. Disclaimer
+Content is user-generated. We do not verify its accuracy and are not responsible for its content.
+
+11. Policy updates
+We will post any updates to this page. If significant, we will notify you by email.`,
     payment_history: "Payment History",
     plan_label: "Plan",
     amount: "Amount",
@@ -584,7 +667,6 @@ And everyone who shares a photo becomes part of that change.`,
     payment_processing: "Processing your payment...",
     shop_desc: "Official project merchandise — show your support!",
     extra_plates: "Extra plates",
-    polityca: "Politics of cond...", 
 badges_label: "Badges",
 badge_pro: "PRO",
 badge_top_contributor: "Top",
@@ -925,6 +1007,48 @@ Ce n’est pas une accusation, c’est un reflet. Un miroir de ce que la communa
 
 Ce n’est pas une plateforme de dénonciation. C’est une plateforme de responsabilité.
 Et chaque personne qui partage une photo contribue au changement.`,
+    polityca: "Politique de confidentialité",
+    polityka_title: "Politique de confidentialité",
+    polityka_fuul: `1. Données que nous conservons
+Nous stockons :
+– votre adresse e-mail ;
+– commentaires, réponses, et pseudo ;
+– photos et vidéos (en tant qu'URL) ;
+– statut PRO, historique des paiements, participation aux tirages ;
+– votes sur les commentaires (positifs/négatifs).
+
+Nous ne stockons pas les adresses IP, données de localisation, cookies, user-agent ou données de suivi.
+
+2. Utilisation des données
+L’email sert à vous connecter et recevoir des notifications. Les commentaires et photos sont affichés publiquement. Le pseudo et le statut PRO peuvent être visibles.
+
+3. Propriété du contenu
+Vous restez propriétaire de vos photos et messages. En les publiant, vous autorisez leur affichage sur le site. Aucun autre usage sans votre accord.
+
+4. Vidéos de plateformes externes
+Les vidéos intégrées (YouTube, TikTok, etc.) sont soumises à la politique de confidentialité de ces plateformes.
+
+5. Abonnement PRO
+Les paiements sont traités via Stripe. Nous ne stockons pas vos données bancaires, uniquement le statut PRO et sa durée.
+
+6. Dons
+Les dons sont un soutien volontaire. Ils peuvent financer le développement du site ou récompenser l’auteur. Le site n’est pas une organisation caritative.
+
+7. Traduction des commentaires
+Des traductions automatiques peuvent être proposées pour plus de confort. L’original est conservé ; la traduction est indicative.
+
+8. Suppression des données
+Les utilisateurs PRO peuvent supprimer leur compte depuis leur profil. Cela efface : email, commentaires, statut, historique.
+Si les commentaires contenaient des URL de médias, elles sont supprimées de la base, mais les fichiers peuvent subsister sur Firebase sans être accessibles.
+
+9. Requêtes officielles
+Nous ne stockons pas d’IP ni d’identifiants techniques. Nous ne pouvons fournir que du contenu public sur demande légale.
+
+10. Limitation de responsabilité
+Le contenu est généré par les utilisateurs. Nous ne garantissons pas son exactitude et déclinons toute responsabilité.
+
+11. Mises à jour
+Cette page sera mise à jour en cas de modification. Pour les changements importants, une notification par e-mail sera envoyée.`,
     payment_history: "Historique des paiements",
     plan_label: "Forfait",
     amount: "Montant",
@@ -936,7 +1060,6 @@ Et chaque personne qui partage une photo contribue au changement.`,
     payment_processing: "Traitement du paiement...",
     shop_desc: "Produits officiels du projet — montrez votre soutien !",
     extra_plates: "Plaques supplémentaires",
-    polityca : "Politique de cond... ",
 badges_label: "Badges",
 badge_pro: "PRO user",
 badge_top_contributor: "Top",

@@ -10,6 +10,8 @@ import parse from "html-react-parser";
 import { useLanguage } from "../../../context/LanguageContext";
 import { translations } from "../../../translations";
 import BadgeList from "../../../components/BadgeList";
+import TranslatedComment from "../../../components/TranslatedComment";
+import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
 
 type MediaItem = {
   url: string;
@@ -83,32 +85,39 @@ useEffect(() => {
             const urlMatch = c.videoUrl || c.comment?.match(/https?:\/\/[^\s]+/)?.[0];
             const embed = urlMatch ? getEmbedHTML(urlMatch) : null;
 
-            return (
-              <div
-                key={c.id}
-                className="bg-white border border-blue-200 rounded-xl shadow-md p-5 space-y-3 hover:shadow-lg transition"
-              >
-                <Link href={`/plate/${encodeURIComponent(c.province.toLowerCase())}/${c.plate}`}>
-                  <div className="text-sm text-gray-500 text-right mb-1 flex items-center justify-end gap-2">
-                        <span className="flex items-center gap-2">
-                        <BadgeList badges={c.badges || []} />      
-                    <strong>{c.author || t.anonymous}</strong> ·{" "}
-                         </span>
-                    <strong>{c.province}</strong> · {clientDates[c.id] || ""}
+              return (
+                <div
+                  key={c.id}
+                  className="bg-white border border-blue-200 rounded-xl shadow-md p-3 space-y-2 hover:shadow-2x1 transition"
+                >
+                  <Link href={`/plate/${encodeURIComponent(c.province.toLowerCase().replace(/[^\w]/gi, ""))}/${c.plate}`}>
+  <div className="text-sm text-gray-500 text-right mb-1 flex items-center justify-end gap-2">
+    <span className="flex items-center gap-2">
+      <BadgeList badges={c.badges || []} />
+      <strong>{c.author || t.anonymous}</strong>
+    </span>
+    <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
+  {provinceAbbreviations[c.province.toLowerCase()] || c.province}
+</span> · {clientDates[c.id] || ""}
+  </div>
+
+  <div className="relative inline-block w-[110px] h-[55px] sm:w-[150px] sm:h-[75px]">
+    <Image
+      src={plateImage}
+      alt={`Номер ${c.plate}`}
+      width={180}
+      height={90}
+      className="w-full h-full object-contain"
+    />
+                       <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[15px] sm:text-[21px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
+                       {c.plate}
+                     </span>
+                     </div>
                   </div>
-                  <div className="relative inline-block w-[180px] h-[90px]">
-                    <Image
-                      src={plateImage}
-                      alt={`${t.plate_alt} ${c.plate}`}
-                      width={180}
-                      height={90}
-                      className="w-full h-full object-contain"
-                    />
-                    <span className="absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[26px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
-                      {c.plate}
-                    </span>
-                  </div>
-                  <p className="text-base text-gray-800 mt-2">{c.comment}</p>
+                  <div className="max-h-[4.5em] overflow-hidden text-ellipsis">
+  <TranslatedComment id={c.id} text={c.comment} />
+</div>
                   {embed && <div className="mt-2">{parse(embed)}</div>}
                   {Array.isArray(c.media) && c.media.length > 0 && (
   <div className="flex flex-wrap gap-4 mt-2">
