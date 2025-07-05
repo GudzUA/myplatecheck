@@ -4,42 +4,79 @@ import { useEffect, useState } from "react";
 import { translations } from "../translations";
 import { useLanguage } from "../context/LanguageContext";
 
+type Props = {
+  replyId: string;
+};
 
-export default function ReplyRatingBlock({ replyId }: { replyId: string }) {
+export default function ReplyRatingBlock({ replyId }: Props) {
   const { lang } = useLanguage();
   const t = translations[lang];
+
   const [upVotes, setUpVotes] = useState(0);
   const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [finalEmail, setFinalEmail] = useState("guest@myplatecheck.com");
 
-  const email =
-    typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("user") || "{}")?.email || "guest"
-      : "guest";
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let email = "guest@myplatecheck.com";
+    const stored = localStorage.getItem("user");
+
+    try {
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.email) email = parsed.email;
+      }
+    } catch (e) {
+      console.error("Failed to parse user", e);
+    }
+
+    if (email === "guest@myplatecheck.com") {
+      let guestId = localStorage.getItem("guestId");
+      if (!guestId) {
+        guestId = crypto.randomUUID();
+        localStorage.setItem("guestId", guestId);
+      }
+      email = `guest-${guestId}@myplatecheck.com`;
+    }
+
+    setFinalEmail(email);
+  }, []);
 
   useEffect(() => {
     const fetchRating = async () => {
       try {
-        const res = await fetch(`/api/reply-rating?replyId=${replyId}`);
+        const res = await fetch(`/api/reply-rating?replyId=${replyId}&email=${finalEmail}`);
         if (!res.ok) return;
         const data = await res.json();
         setUpVotes(data.up);
         setDownVotes(data.down);
+        setVoted(data.userVote || null);
       } catch (err) {
         console.error("Fetch error:", err);
       }
     };
 
-    fetchRating();
-  }, [replyId]);
+    if (finalEmail) fetchRating();
+  }, [replyId, finalEmail]);
 
   const handleVote = async (type: "up" | "down") => {
+    if (voted) {
+      setShowModal(true);
+      return;
+    }
+
     try {
       const res = await fetch("/api/reply-rating", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ replyId, email, type }),
+        body: JSON.stringify({
+          replyId,
+          email: finalEmail,
+          type,
+        }),
       });
 
       if (res.ok) {
@@ -58,24 +95,26 @@ export default function ReplyRatingBlock({ replyId }: { replyId: string }) {
   };
 
   return (
-    <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-      <span className="mr-2">{t.rate_reply}</span>
-      <button
-        onClick={() => handleVote("up")}
-        className={`px-1 py-0.5 rounded ${
-          voted === "up" ? "bg-green-200" : "bg-white"
-        } border`}
-      >
-        👍 {upVotes}
-      </button>
-      <button
-        onClick={() => handleVote("down")}
-        className={`px-1 py-0.5 rounded border ${
-          voted === "down" ? "bg-red-200" : "bg-white"
-        } border`}
-      >
-        👎 {downVotes}
-      </button>
+    <>
+      <div className="text-sm text-gray-600 mt-2 flex items-center gap-2">
+        <span className="mr-2">{t.rate_reply}</span>
+        <button
+          onClick={() => handleVote("up")}
+          className={`px-1 py-0.5 rounded ${
+            voted === "up" ? "bg-green-200" : "bg-white"
+          } border`}
+        >
+          👍 {upVotes}
+        </button>
+        <button
+          onClick={() => handleVote("down")}
+          className={`px-1 py-0.5 rounded ${
+            voted === "down" ? "bg-red-200" : "bg-white"
+          } border`}
+        >
+          👎 {downVotes}
+        </button>
+      </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -90,8 +129,6 @@ export default function ReplyRatingBlock({ replyId }: { replyId: string }) {
           </div>
         </div>
       )}
-
-    
-    </div>
+    </>
   );
 }

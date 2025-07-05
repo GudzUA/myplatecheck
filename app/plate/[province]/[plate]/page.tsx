@@ -126,17 +126,21 @@ useEffect(() => {
 useEffect(() => {
   if (comments.length === 0) return;
 
-  const ids = comments.map(c => c.id).join(",");
-  const stored = localStorage.getItem("user");
-  const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
+const ids = comments.map(c => c.id).join(",");
+const stored = localStorage.getItem("user");
+const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
 
-  fetch(`/api/rating/batch?ids=${ids}&email=${email}`)
+// ⬇️ якщо гість — ставимо email guest-${plateCode}@myplatecheck.com
+const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
+
+fetch(`/api/rating/batch?ids=${ids}&email=${finalEmail}`)
+
     .then(res => res.json())
     .then((data: Record<string, RatingData>) => {
       setRatingsMap(data);
     })
     .catch(err => console.error("❌ Rating batch error:", err));
-}, [comments]);
+}, [comments, plateCode]);
 
 
 function getEmbedHTML(url: string): string | null {

@@ -6,7 +6,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import { translations } from "../../translations";
 import Image from "next/image";
 import { Switch } from "@/components/ui/switch";
-
+import InputModal from "@/components/InputModal";
 
 type Comment = {
   id: string;
@@ -48,6 +48,7 @@ export default function AccountPage() {
   const [newPlate, setNewPlate] = useState("");
   const [selectedPlateFilter, setSelectedPlateFilter] = useState<string | null>(null);
   const [joinRadioDraw, setJoinRadioDraw] = useState(false);
+  const [modalType, setModalType] = useState<null | "login" | "password" | "plate">(null); 
 
 useEffect(() => {
   const stored = localStorage.getItem("user");
@@ -103,104 +104,69 @@ useEffect(() => {
     });
 }, [router]);
 
-
-const handleChangePassword = async () => {
-  const oldPass = prompt(t.prompt_old_password);
-  const newPass = prompt(t.prompt_new_password);
-  if (!oldPass || !newPass) return;
-
-  const stored = localStorage.getItem("user");
-  if (!stored) return;
-
-  const parsed = JSON.parse(stored);
-
-  try {
-    const res = await fetch("/api/change-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        login: parsed.login,
-        oldPassword: oldPass,
-        newPassword: newPass,
-      }),
-    });
-
-    const result = await res.json();
-    if (result.success) {
-      parsed.password = newPass;
-      localStorage.setItem("user", JSON.stringify(parsed));
-      alert(t.password_updated);
-    } else {
-      alert(t.password_incorrect);
+  const submitNewLogin = async (value: string) => {
+    if (!user || value.length > 10) return alert(t.login_max_10);
+    try {
+      const res = await fetch("/api/user/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, login: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) return alert(data?.error || t.update_failed);
+      localStorage.setItem("user", JSON.stringify(data));
+      setUser(data);
+      setModalType(null);
+    } catch {
+      alert(t.network_error);
     }
-  } catch (e) {
-    console.error("Change password error:", e);
-    alert(t.error);
-  }
-};
+  };
 
-const handleChangeLogin = async () => {
-  const newLogin = prompt(t.prompt_new_login);
-  if (!newLogin || !user) return;
-
-  if (newLogin.length > 10) {
-    alert(t.login_max_10 || "Максимум 10 символів у логіні");
-    return;
-  }
-
-  try {
-    const res = await fetch("/api/user/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: user.email, login: newLogin }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data?.error || t.update_failed);
-      return;
+  const submitNewPlate = async (value: string) => {
+    if (!user) return;
+    const plateFormatted = value.toUpperCase();
+    try {
+      const res = await fetch("/api/user/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, plate: plateFormatted }),
+      });
+      const updated = await res.json();
+      if (!res.ok) return alert(t.error);
+      setUser(updated);
+      localStorage.setItem("user", JSON.stringify(updated));
+      setModalType(null);
+    } catch {
+      alert(t.network_error);
     }
+  };
 
-    localStorage.setItem("user", JSON.stringify(data));
-    setUser(data);
-  } catch {
-    alert(t.network_error);
-  }
-};
-
-
-const handleChangePlate = async () => {
-  const newPlate = prompt(t.prompt_new_plate);
-  if (!newPlate || !user) return;
-
-  const plateFormatted = newPlate.toUpperCase();
-
-  const res = await fetch("/api/user/update", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: user.email, plate: plateFormatted }),
-  });
-
-  if (!res.ok) {
-    alert("❌ " + t.error);
-    return;
-  }
-
-  const updated = await res.json();
-  setUser(updated);
-
-  // оновити в localStorage, щоб зберегти поточну сесію
-  localStorage.setItem("user", JSON.stringify(updated));
-};
-
-  const handleLogout = () => {
-  localStorage.removeItem("user");
-  setUser(null);
-  router.push("/");
-  window.location.reload(); // ⬅️ Додаємо це
-};
-
+    const submitNewPassword = async (value: { oldPassword: string, newPassword: string }) => {
+    if (!value.oldPassword || !value.newPassword || !user) return;
+    try {
+      const res = await fetch("/api/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          login: user.login,
+          oldPassword: value.oldPassword,
+          newPassword: value.newPassword
+        })
+      });
+      const result = await res.json();
+      if (result.success) {
+        const updated = { ...user, password: value.newPassword };
+        localStorage.setItem("user", JSON.stringify(updated));
+        setUser(updated);
+        alert(t.password_updated);
+        setModalType(null);
+      } else {
+        alert(t.password_incorrect);
+      }
+    } catch {
+      alert(t.network_error);
+    }
+  };
 
 
 const handleDelete = async () => {
@@ -336,6 +302,13 @@ const handleDeleteComment = async (id: string) => {
   }
 };
 
+const handleLogout = () => {
+  localStorage.removeItem("user");
+  setUser(null);
+  router.push("/");
+  window.location.reload();
+};
+
 const handleToggleDraw = async (checked: boolean) => {
   try {
     const stored = localStorage.getItem("user");
@@ -446,7 +419,7 @@ const handleToggleDraw = async (checked: boolean) => {
 
             <div className="text-sm text-gray-700">
   {t.main_plate}: <strong>{user.plate || t.not_set}</strong>{" "} 
-  <button onClick={handleChangePlate} className="underline ml-1 text-blue-700"> {t.change}</button>
+  <button onClick={() => setModalType("plate")} className="underline text-blue-800">{t.change_plate}</button>
 </div>
 
          {!user.pro && (
@@ -464,7 +437,7 @@ const handleToggleDraw = async (checked: boolean) => {
   <div className="flex flex-wrap gap-2 mt-4">
     <button
       onClick={() => setSelectedPlateFilter(null)}
-      className={`px-3 py-1 rounded border ${selectedPlateFilter === null ? "bg-blue-800 text-white" : "bg-white text-blue-800"}`}
+      className={`px-3 py-1 text-sm rounded ${selectedPlateFilter === null ? "bg-blue-800 text-white" : "bg-white text-blue-800"}`}
     >
       {t.all_plates}
     </button>
@@ -472,7 +445,7 @@ const handleToggleDraw = async (checked: boolean) => {
       <button
         key={idx}
         onClick={() => setSelectedPlateFilter(plate || null)}
-        className={`px-3 py-1 rounded border ${selectedPlateFilter === plate ? "bg-blue-800 text-white" : "bg-white text-blue-800"}`}
+        className={`px-3 py-1 text-sm rounded ${selectedPlateFilter === plate ? "bg-blue-800 text-white" : "bg-white text-blue-800"}`}
       >
         {plate}
       </button>
@@ -490,11 +463,11 @@ const handleToggleDraw = async (checked: boolean) => {
                   onChange={(e) => setNewPlate(e.target.value)}
                  placeholder={t.placeholder_new_plate}
                  maxLength={7}
-                  className="border p-2 rounded flex-grow"
+                  className="border px-2 py-1 rounded text-sm flex-grow"
                 />
                <button
   onClick={handleAddTrackedPlate}
-  className="bg-blue-800 text-white px-3 py-2 rounded hover:bg-blue-700 text-sm w-full sm:w-auto whitespace-nowrap"
+  className="bg-blue-800 text-white px-2 py-1 rounded hover:bg-blue-700 text-sm w-full sm:w-auto whitespace-nowrap"
 >
  {t.add}
 </button>
@@ -539,7 +512,7 @@ const handleToggleDraw = async (checked: boolean) => {
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab("comments")}
-              className={`px-4 py-2 rounded ${activeTab === "comments"
+              className={`px-3 py-1 text-sm rounded ${activeTab === "comments"
                 ? "bg-blue-800 text-white"
                 : "bg-white border border-blue-300 text-blue-800"
               }`}
@@ -548,7 +521,7 @@ const handleToggleDraw = async (checked: boolean) => {
              </button>
             <button
               onClick={() => setActiveTab("replies")}
-              className={`px-4 py-2 rounded ${activeTab === "replies"
+              className={`px-3 py-1 text-sm rounded ${activeTab === "replies"
                 ? "bg-blue-800 text-white"
                 : "bg-white border border-blue-300 text-blue-800"
               }`}
@@ -557,10 +530,12 @@ const handleToggleDraw = async (checked: boolean) => {
             </button>
           </div>
           <div className="flex gap-3 text-sm">
-            <button onClick={handleChangeLogin} className="underline text-blue-800">{t.change_login}</button>
-            <button onClick={handleChangePassword} className="underline text-blue-800">{t.change_password}</button>
-            <button onClick={handleDelete} className="underline text-red-600">{t.delete}</button>
-            <button onClick={handleLogout} className="underline text-gray-600">{t.logout}</button>
+            <div className="flex gap-3 text-sm">
+                <button onClick={() => setModalType("login")} className="underline text-blue-800">{t.change_login}</button>
+                <button onClick={() => setModalType("password")} className="underline text-blue-800">{t.change_password}</button>
+                <button onClick={handleDelete} className="underline text-red-600">{t.delete}</button>
+                <button onClick={handleLogout} className="underline text-gray-600">{t.logout}</button>
+              </div>
           </div>
         </div>
 
@@ -596,6 +571,15 @@ const handleToggleDraw = async (checked: boolean) => {
   )}
 </div>
 </div>
+ <InputModal
+  type={modalType}
+  onClose={() => setModalType(null)}
+  onSubmit={{
+    login: submitNewLogin,
+    password: submitNewPassword,
+    plate: submitNewPlate,
+  }}
+/>
 </main>
  </>
   );

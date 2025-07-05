@@ -6,11 +6,11 @@ import { translations } from "../translations";
 
 type Props = {
   plate: string;
-  email?: string;
   province: string;
+  email?: string;
 };
 
-export default function DriverRatingBlock({ plate, email, province }: Props) {
+export default function DriverRatingBlock({ plate, province }: Props) {
   const { lang } = useLanguage();
   const t = translations[lang];
 
@@ -18,17 +18,53 @@ export default function DriverRatingBlock({ plate, email, province }: Props) {
   const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [finalEmail, setFinalEmail] = useState("guest@myplatecheck.com");
 
-useEffect(() => {
-  fetch(`/api/driver-rating?plate=${plate}&email=${email || "guest"}&province=${province}`)
-    .then((res) => res.json())
-    .then((data) => {
-      setUpVotes(data.up || 0);
-      setDownVotes(data.down || 0);
-      if (data.userVote) setVoted(data.userVote);
-    })
-    .catch((err) => console.error("Load driver rating error:", err));
-}, [plate, email, province]); 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let email = "guest@myplatecheck.com";
+    const stored = localStorage.getItem("user");
+
+    try {
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.email) email = parsed.email;
+      }
+    } catch (e) {
+      console.error("Failed to parse user", e);
+    }
+
+    if (email === "guest@myplatecheck.com") {
+      let guestId = localStorage.getItem("guestId");
+      if (!guestId) {
+        guestId = crypto.randomUUID();
+        localStorage.setItem("guestId", guestId);
+      }
+      email = `guest-${guestId}@myplatecheck.com`;
+    }
+
+    setFinalEmail(email);
+  }, []);
+
+  useEffect(() => {
+    const fetchRating = async () => {
+      try {
+        const res = await fetch(
+          `/api/driver-rating?plate=${plate}&province=${province}&email=${finalEmail}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        setUpVotes(data.up || 0);
+        setDownVotes(data.down || 0);
+        if (data.userVote) setVoted(data.userVote);
+      } catch (err) {
+        console.error("Load driver rating error:", err);
+      }
+    };
+
+    if (finalEmail) fetchRating();
+  }, [plate, province, finalEmail]);
 
   const handleVote = async (type: "up" | "down") => {
     if (voted) {
@@ -42,9 +78,9 @@ useEffect(() => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plate,
-          email: email || "guest",
-          type,
           province,
+          email: finalEmail,
+          type,
         }),
       });
 
@@ -56,7 +92,7 @@ useEffect(() => {
         setShowModal(true);
       } else {
         const errText = await res.text();
-        console.error("Driver vote failed:", res.status, errText);
+        console.error("Vote error", res.status, errText);
       }
     } catch (err) {
       console.error("Vote error:", err);
@@ -66,12 +102,14 @@ useEffect(() => {
   return (
     <>
       <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-800 mt-1 sm:mt-2">
-       <span className="font-semibold text-sm sm:text-base mr-1 sm:mr-2">{t.rate_driver}</span>
+        <span className="font-semibold text-sm sm:text-base mr-1 sm:mr-2">
+          {t.rate_driver}
+        </span>
         <button
           onClick={() => handleVote("up")}
-            className={`px-1 py-[2px] sm:px-1.5 sm:py-1 rounded border text-xs sm:text-sm ${
-               voted === "up" ? "bg-green-200" : "bg-white"
-          } border`}
+          className={`px-1 py-[2px] sm:px-1.5 sm:py-1 rounded border text-xs sm:text-sm ${
+            voted === "up" ? "bg-green-200" : "bg-white"
+          }`}
         >
           👍 {upVotes}
         </button>
@@ -79,7 +117,7 @@ useEffect(() => {
           onClick={() => handleVote("down")}
           className={`px-1 py-[2px] sm:px-1.5 sm:py-1 rounded border text-xs sm:text-sm ${
             voted === "down" ? "bg-red-200" : "bg-white"
-          } border`}
+          }`}
         >
           👎 {downVotes}
         </button>

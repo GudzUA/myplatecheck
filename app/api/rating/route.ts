@@ -43,7 +43,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const { commentId, email, type } = await req.json();
 
-  if (!commentId || !email || !["up", "down"].includes(type)) {
+  if (!commentId || typeof email !== "string" || !["up", "down"].includes(type)) {
     return NextResponse.json({ error: "Invalid data" }, { status: 400 });
   }
 

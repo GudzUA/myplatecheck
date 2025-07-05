@@ -12,12 +12,11 @@ type RatingData = {
 
 type Props = {
   commentId: string;
+  allRatings?: Record<string, RatingData>;
   email?: string;
-  initialVotes?: { up: number; down: number };
-  allRatings?: Record<string, RatingData>; // ⬅️ Додано сюди
 };
 
-export default function RatingBlock({ commentId, email, allRatings }: Props) {
+export default function RatingBlock({ commentId, allRatings }: Props) {
   const { lang } = useLanguage();
   const t = translations[lang];
 
@@ -27,14 +26,20 @@ export default function RatingBlock({ commentId, email, allRatings }: Props) {
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-  if (allRatings && allRatings[commentId]) {
-    const data = allRatings[commentId];
-    setUpVotes(data.up);
-    setDownVotes(data.down);
-    setVoted(data.userVote || null);
-  }
-}, [commentId, allRatings]); 
+    if (typeof window === "undefined") return;
 
+    const votedComments = JSON.parse(localStorage.getItem("votedComments") || "[]");
+
+    if (votedComments.includes(commentId)) {
+      setVoted("up"); // або збережи тип голосу, якщо хочеш точність
+    }
+
+    if (allRatings && allRatings[commentId]) {
+      const data = allRatings[commentId];
+      setUpVotes(data.up);
+      setDownVotes(data.down);
+    }
+  }, [commentId, allRatings]);
 
   const handleVote = async (type: "up" | "down") => {
     if (voted) {
@@ -48,16 +53,20 @@ export default function RatingBlock({ commentId, email, allRatings }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           commentId,
-          email: email || "guest",
           type,
+          email: "guest@myplatecheck.com", // все одно потрібен для API
         }),
       });
 
-      if (!res.ok) throw new Error(`Vote failed: ${res.statusText}`);
+      if (!res.ok) throw new Error("Vote failed");
 
       if (type === "up") setUpVotes((prev) => prev + 1);
       else setDownVotes((prev) => prev + 1);
       setVoted(type);
+
+      const votedComments = JSON.parse(localStorage.getItem("votedComments") || "[]");
+      votedComments.push(commentId);
+      localStorage.setItem("votedComments", JSON.stringify(votedComments));
     } catch (err) {
       console.error("❌ Vote error:", err);
     }
@@ -69,17 +78,13 @@ export default function RatingBlock({ commentId, email, allRatings }: Props) {
         <span className="mr-2">{t.rate_comment}</span>
         <button
           onClick={() => handleVote("up")}
-          className={`px-1 py-0.5 rounded ${
-            voted === "up" ? "bg-green-200" : "bg-white"
-          } border`}
+          className={`px-1 py-0.5 rounded ${voted === "up" ? "bg-green-200" : "bg-white"} border`}
         >
           👍 {upVotes}
         </button>
         <button
           onClick={() => handleVote("down")}
-          className={`px-1.5 py-0.5 rounded ${
-            voted === "down" ? "bg-red-200" : "bg-white"
-          } border`}
+          className={`px-1 py-0.5 rounded ${voted === "down" ? "bg-red-200" : "bg-white"} border`}
         >
           👎 {downVotes}
         </button>

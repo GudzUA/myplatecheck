@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const replyId = searchParams.get("replyId");
+  const email = searchParams.get("email");
 
   if (!replyId) {
     return NextResponse.json({ error: "Missing replyId" }, { status: 400 });
@@ -17,7 +18,11 @@ export async function GET(req: NextRequest) {
     const up = allRatings.filter((r) => r.type === "up").length;
     const down = allRatings.filter((r) => r.type === "down").length;
 
-    return NextResponse.json({ up, down });
+    const userVote = email
+      ? allRatings.find((r) => r.email === email)?.type ?? null
+      : null;
+
+    return NextResponse.json({ up, down, userVote });
   } catch (err) {
     console.error("GET error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

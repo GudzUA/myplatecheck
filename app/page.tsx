@@ -260,18 +260,22 @@ const res = await fetch("/api/rating/batch", {
 
 
 useEffect(() => {
-  const user = localStorage.getItem("user");
-  if (!user) return;
+  let user = localStorage.getItem("user");
+  if (!user) {
+    const guestId = `guest_${crypto.randomUUID()}`;
+    user = JSON.stringify({ email: guestId, type: "guest" });
+    localStorage.setItem("user", user);
+  }
 
   try {
     const parsed = JSON.parse(user);
     const type = parsed?.type || (parsed?.pro ? "pro" : "free");
     setUserType(type);
-    // ➕ Додаємо значок PRO
+
     if (parsed?.email) {
       const email = parsed.email.toLowerCase();
       const rawUsers = localStorage.getItem("users");
-      const users = rawUsers ? JSON.parse(rawUsers) : {};	  
+      const users = rawUsers ? JSON.parse(rawUsers) : {};
 
       users[email] = {
         badges: [
