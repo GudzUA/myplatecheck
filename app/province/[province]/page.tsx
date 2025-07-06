@@ -13,9 +13,11 @@ import BadgeList from "../../../components/BadgeList";
 import TranslatedComment from "../../../components/TranslatedComment";
 import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
 
-type MediaItem = {
-  url: string;
-  type: string;
+
+type RatingData = {
+  up: number;
+  down: number;
+  userVote?: "up" | "down";
 };
 
 type CommentData = {
@@ -24,13 +26,13 @@ type CommentData = {
   province: string;
   comment: string;
   createdAt: string;
-  media?: MediaItem[];
+  media?: { url: string; type: string }[];
   videoUrl?: string;
-  votes?: number;
-  author?: string;
-  email?: string;
+  author: string;
   badges?: string[];
+  email?: string;
 };
+
 
 export default function ProvincePage() {
   const { province } = useParams() as { province: string };
@@ -42,6 +44,27 @@ export default function ProvincePage() {
   const [clientDates, setClientDates] = useState<Record<string, string>>({});
   const cleaned = rawProvince.replace(/[^\w]/gi, "").toLowerCase();
   const provinceSlug = decodeURIComponent(cleaned);
+  const [ratings, setRatings] = useState<Record<string, RatingData>>({});
+  const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+  const parsed = stored ? JSON.parse(stored) : null;
+  const email = parsed?.email || "guest";
+  const finalEmail = email === "guest" ? `guest-${provinceSlug}@myplatecheck.com` : email;
+
+useEffect(() => {
+  if (comments.length === 0) return;
+
+  fetch("/api/comment-rating/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commentIds: comments.map(c => c.id), email: finalEmail }),
+  })
+    .then(res => res.json())
+    .then((data: Record<string, RatingData>) => {
+      setRatings(data);
+    })
+    .catch(err => console.error("❌ Rating batch error:", err));
+}, [comments, finalEmail]);
+
 
 useEffect(() => {
   async function fetchComments() {
@@ -69,7 +92,6 @@ useEffect(() => {
   fetchComments();
 }, [provinceSlug]);
 
-
   return (
     <main className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6 capitalize">
@@ -94,7 +116,7 @@ useEffect(() => {
   <div className="text-sm text-gray-500 text-right mb-1 flex items-center justify-end gap-2">
     <span className="flex items-center gap-2">
       <BadgeList badges={c.badges || []} />
-      <strong>{c.author || t.anonymous}</strong>
+      <strong>{["Гість", "Guest", "Invité"].includes(c.author) ? t.anonymous : c.author}</strong>
     </span>
     <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
   {provinceAbbreviations[c.province.toLowerCase()] || c.province}
@@ -145,11 +167,9 @@ useEffect(() => {
   </div>
 )}
 
-
-
                 </Link>
                 <div className="flex justify-end">
-                  <RatingBlock commentId={c.id} />
+                 <RatingBlock commentId={c.id} allRatings={ratings} />
                 </div>
               </div>
             );

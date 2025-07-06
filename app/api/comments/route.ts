@@ -9,7 +9,10 @@ export async function POST(req: Request) {
 
     const newComment = await prisma.comment.create({
   data: {
-    author: body.author || "Гість",
+    author:
+      body.email?.startsWith("guest_") || body.email === "guest@myplatecheck.com"
+        ? "Гість"
+        : body.author,
     userId: body.userId,
     plate: body.plate,
     province: body.province?.toLowerCase(),
@@ -18,6 +21,7 @@ export async function POST(req: Request) {
     media: body.media || [],
     videoUrl: body.videoUrl || "",
     parentId: body.parentId || null,
+    sourceLang: body.sourceLang, 
     pending: body.parentId ? false : true,
     badges: Array.isArray(body.badges) ? body.badges : [],
   },

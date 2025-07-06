@@ -22,7 +22,6 @@ type RatingData = {
   userVote?: "up" | "down";
 };
 
-
 type MediaItem = { url: string; type: string };
 type Comment = {
   id: string;
@@ -59,7 +58,7 @@ export default function PlatePage() {
   const [showLogin, setShowLogin] = useState(false);
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
   const [embedHtmlMap, setEmbedHtmlMap] = useState<{ [id: string]: string }>({});
-  const [ratingsMap, setRatingsMap] = useState<Record<string, RatingData>>({});
+  const [ratings, setRatings] = useState<Record<string, RatingData>>({});
 
 
 useEffect(() => {
@@ -126,18 +125,19 @@ useEffect(() => {
 useEffect(() => {
   if (comments.length === 0) return;
 
-const ids = comments.map(c => c.id).join(",");
-const stored = localStorage.getItem("user");
-const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
+  const stored = localStorage.getItem("user");
+  const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
 
-// ⬇️ якщо гість — ставимо email guest-${plateCode}@myplatecheck.com
-const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
+  const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
 
-fetch(`/api/rating/batch?ids=${ids}&email=${finalEmail}`)
-
+  fetch("/api/comment-rating/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ commentIds: comments.map(c => c.id), email: finalEmail }),
+  })
     .then(res => res.json())
     .then((data: Record<string, RatingData>) => {
-      setRatingsMap(data);
+      setRatings(data);
     })
     .catch(err => console.error("❌ Rating batch error:", err));
 }, [comments, plateCode]);
@@ -193,6 +193,7 @@ const handleReplySubmit = async (parentId: string) => {
   const storedUser = localStorage.getItem("user");
   const user = storedUser ? JSON.parse(storedUser) : null;
 
+
   if (!user) {
     setModalMessage(t.login_required_to_reply);
     setAlertMode("login");
@@ -208,7 +209,9 @@ const handleReplySubmit = async (parentId: string) => {
   parentId,
   email: user?.email || null,
   pending: false,
-  userId: user.id
+  userId: user.id,
+  sourceLang: lang,
+  badges: user.badges || [],
 
 };
 
@@ -333,7 +336,7 @@ useEffect(() => {
 <div className="text-sm text-gray-600 text-right font-medium flex justify-end items-center gap-1">
   <span className="flex items-center gap-2">
   <BadgeList badges={c.badges || []} />
-  <strong>{c.author || t.anonymous}</strong>
+  <strong>{["Гість", "Guest", "Invité"].includes(c.author) ? t.anonymous : c.author}</strong>
 </span>
 <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
   {provinceAbbreviations[c.province.toLowerCase()] || c.province}
@@ -376,7 +379,7 @@ useEffect(() => {
 )}
 
   <div className="mt-2 flex justify-end items-center gap-3">
-  <RatingBlock commentId={c.id} email={c.email} allRatings={ratingsMap} />
+  <RatingBlock commentId={c.id} allRatings={ratings} />
   </div>
 </div>
 
@@ -388,8 +391,8 @@ useEffect(() => {
         className="ml-auto mr-2 w-[92%] bg-white border border-blue-100 px-3 py-1 rounded-lg shadow-sm"
       >
        <div className="text-sm text-gray-600 text-right font-medium flex justify-end items-center gap-1">
-  <BadgeList badges={c.badges || []} />
-  <strong>{reply.author || t.anonymous}</strong> · <strong>{provinceAbbreviations[c.province.toLowerCase()] || c.province}</strong> · {replyDates[reply.id] || ""}
+  <BadgeList badges={reply.badges || []} />
+  <strong>{["Гість", "Guest", "Invité"].includes(reply.author) ? t.anonymous : reply.author}</strong> · <strong>{provinceAbbreviations[c.province.toLowerCase()] || c.province}</strong> · {replyDates[reply.id] || ""}
 </div>
        <TranslatedComment id={reply.id} text={reply.comment} />
         <div className="mt-2 flex justify-end">

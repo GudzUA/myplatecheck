@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="UA">
+    <html lang="EN">
       <head>
         {/* ✅ Додаємо скрипти для підтримки TikTok і Instagram вставок */}
         <script async src="https://www.tiktok.com/embed.js"></script>

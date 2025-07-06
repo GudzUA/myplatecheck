@@ -16,7 +16,7 @@ export default function ReplyRatingBlock({ replyId }: Props) {
   const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [finalEmail, setFinalEmail] = useState("guest@myplatecheck.com");
+  const [finalEmail, setFinalEmail] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -51,9 +51,11 @@ export default function ReplyRatingBlock({ replyId }: Props) {
         const res = await fetch(`/api/reply-rating?replyId=${replyId}&email=${finalEmail}`);
         if (!res.ok) return;
         const data = await res.json();
-        setUpVotes(data.up);
-        setDownVotes(data.down);
-        setVoted(data.userVote || null);
+        setUpVotes(data.up || 0);
+        setDownVotes(data.down || 0);
+        if (data.userVote === "up" || data.userVote === "down") {
+          setVoted(data.userVote);
+        }
       } catch (err) {
         console.error("Fetch error:", err);
       }

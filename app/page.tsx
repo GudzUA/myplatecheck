@@ -242,7 +242,7 @@ useEffect(() => {
     const user = localStorage.getItem("user");
 const email = user ? JSON.parse(user).email : "guest";
 
-const res = await fetch("/api/rating/batch", {
+const res = await fetch("/api/comment-rating/batch", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ commentIds, email }), // ✅ тепер і commentIds, і email
@@ -261,11 +261,11 @@ const res = await fetch("/api/rating/batch", {
 
 useEffect(() => {
   let user = localStorage.getItem("user");
-  if (!user) {
-    const guestId = `guest_${crypto.randomUUID()}`;
-    user = JSON.stringify({ email: guestId, type: "guest" });
-    localStorage.setItem("user", user);
-  }
+    if (!user) {
+  const guestId = `guest_${crypto.randomUUID()}@myplatecheck.com`;
+  user = JSON.stringify({ email: guestId, type: "guest" });
+  localStorage.setItem("user", user);
+}
 
   try {
     const parsed = JSON.parse(user);
@@ -310,7 +310,7 @@ useEffect(() => {
   <div className="text-sm text-gray-500 text-right mb-1 flex items-center justify-end gap-2">
     <span className="flex items-center gap-2">
       <BadgeList badges={c.badges || []} />
-      <strong>{c.author || t.anonymous}</strong>
+      <strong>{["Гість", "Guest", "Invité"].includes(c.author ?? "") ? t.anonymous : c.author}</strong>
     </span>
     <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
   {provinceAbbreviations[c.province.toLowerCase()] || c.province}
@@ -374,7 +374,7 @@ useEffect(() => {
 )}
 
 
-                  <div className="flex justify-end"><RatingBlock commentId={c.id} email={c.email} allRatings={ratings} />
+                  <div className="flex justify-end"><RatingBlock commentId={c.id} allRatings={ratings} />
                   </div>
                 </div>
               );
@@ -436,9 +436,10 @@ useEffect(() => {
 <ol className="list-decimal list-inside space-y-2 text-blue-800 font-semibold">
   {worstDrivers.map((item, index) => (
     <li key={index} className="flex items-center justify-between">
+      {index + 1} — 
       <Link
         href={`/plate/${encodeURIComponent(item.province)}/${encodeURIComponent(item.plate)}`}
-        className="hover:underline"
+        className="hover:underline ml-1"
       >
         {item.plate}
         <span className="text-gray-500 text-xs ml-1">

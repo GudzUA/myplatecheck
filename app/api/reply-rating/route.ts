@@ -1,34 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const replyId = searchParams.get("replyId");
-  const email = searchParams.get("email");
-
-  if (!replyId) {
-    return NextResponse.json({ error: "Missing replyId" }, { status: 400 });
-  }
-
-  try {
-    const allRatings = await prisma.replyRating.findMany({
-      where: { replyId },
-    });
-
-    const up = allRatings.filter((r) => r.type === "up").length;
-    const down = allRatings.filter((r) => r.type === "down").length;
-
-    const userVote = email
-      ? allRatings.find((r) => r.email === email)?.type ?? null
-      : null;
-
-    return NextResponse.json({ up, down, userVote });
-  } catch (err) {
-    console.error("GET error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
-}
-
 export async function POST(req: NextRequest) {
   const { replyId, email, type } = await req.json();
 
@@ -61,6 +33,46 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("POST error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const replyId = searchParams.get("replyId");
+  const email = searchParams.get("email");
+
+  if (!replyId) {
+    return NextResponse.json({ error: "Missing replyId" }, { status: 400 });
+  }
+
+  try {
+    const up = await prisma.replyRating.count({
+      where: { replyId, type: "up" },
+    });
+
+    const down = await prisma.replyRating.count({
+      where: { replyId, type: "down" },
+    });
+
+    const userVote = email
+      ? await prisma.replyRating.findUnique({
+          where: {
+            replyId_email: {
+              replyId,
+              email,
+            },
+          },
+        })
+      : null;
+
+    return NextResponse.json({
+      up,
+      down,
+      userVote: userVote?.type || null,
+    });
+  } catch (err) {
+    console.error("GET error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

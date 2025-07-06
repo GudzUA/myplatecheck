@@ -1,39 +1,48 @@
-import { NextResponse } from "next/server";
+// app/api/rating/worst/route.ts
 import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const allRatings = await prisma.driverRating.findMany();
 
-    const result = await prisma.driverRating.groupBy({
-      by: ["plate", "province"],
-      where: {
-        type: "down",
-        createdAt: {
-          gte: startOfMonth, // ⬅️ фільтрація лише з початку місяця
-        },
-      },
-      _count: {
-        id: true,
-      },
-      orderBy: {
-        _count: {
-          id: "desc",
-        },
-      },
-      take: 10,
-    });
+    const grouped: Record<
+      string,
+      { plate: string; province: string; up: number; down: number }
+    > = {};
 
-    return NextResponse.json(
-      result.map((item) => ({
-        plate: item.plate,
-        province: item.province,
-        dislikes: item._count.id,
+    for (const r of allRatings) {
+      const key = `${r.plate}_${r.province}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          plate: r.plate,
+          province: r.province || "default",
+          up: 0,
+          down: 0,
+        };
+      }
+      if (r.type === "up") grouped[key].up += 1;
+      if (r.type === "down") grouped[key].down += 1;
+    }
+
+    const result = Object.values(grouped)
+      .map((entry) => ({
+        ...entry,
+        diff: entry.down - entry.up,
       }))
-    );
+      .filter((entry) => entry.diff > 0)
+      .sort((a, b) => b.diff - a.diff)
+      .map((entry, index) => ({
+        rank: index + 1,
+        plate: entry.plate,
+        province: entry.province,
+        down: entry.down,
+        diff: entry.diff,
+      }));
+
+    return NextResponse.json(result);
   } catch (error) {
-    console.error("Error in top-worst route:", error);
-    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
+    console.error("❌ Error in /api/rating/worst:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

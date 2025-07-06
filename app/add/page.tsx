@@ -32,6 +32,7 @@ type Comment = {
   badges?: string[];     
   pending?: boolean;   
   userId?: string;
+  sourceLang: string;
 };
 
 type AppUser = {
@@ -232,7 +233,7 @@ const userComments = allComments.filter(
     localStorage.setItem("user", JSON.stringify(currentUser));
 
     const users = JSON.parse(localStorage.getItem("users") || "[]");
-const updatedUsers = users.map((u: AppUser) =>
+    const updatedUsers = users.map((u: AppUser) =>
   u.email === currentUser.email ? { ...u, usedInitialLimit: true } : u
 );
     localStorage.setItem("users", JSON.stringify(updatedUsers));
@@ -243,7 +244,7 @@ const updatedUsers = users.map((u: AppUser) =>
   id: newId,
   plate: normalizedPlate,
   province: province.toLowerCase(),
-  author: currentUser?.login || currentUser?.email || "Гість",
+  author: currentUser?.login || currentUser?.email || "Guest",
   comment,
   createdAt: new Date().toISOString(),
   media: uploadedMedia,
@@ -263,6 +264,7 @@ const updatedUsers = users.map((u: AppUser) =>
     : ["guest"],
   pending: true,
   userId: currentUser?.id,
+  sourceLang: lang,
 };
 
 await fetch("/api/comments", {
@@ -293,10 +295,10 @@ await fetch("/api/comments", {
   }
 };
 
-  if (!mounted) return null; // ⬅️ оце встав
+  if (!mounted) return null; 
 
   return (
-    <main className="w-full max-w-2xl mx-auto px-4 py-10 sm:px-6 sm:max-w-xl md:max-w-2xl">
+    <main className="w-full min-h-[100dvh] max-w-2xl mx-auto px-4 py-10 sm:px-6 sm:max-w-xl md:max-w-2xl">
       <h1 className="text-3xl font-bold text-blue-800 mb-8 text-center">{t.add_comment}</h1>
 
       {mounted && (

@@ -10,6 +10,12 @@ export async function POST(req: NextRequest) {
     const { email, subject, message } = await req.json();
     const lang = req.headers.get("accept-language")?.split(",")[0]?.split("-")[0] || "ua";
 
+    // ⛔️ Не надсилаємо email, якщо гість
+    if (email.startsWith("guest_") || email === "guest@myplatecheck.com") {
+      console.log(`⛔️ Email не надіслано — гість (${email})`);
+      return NextResponse.json({ success: true, skipped: "guest" }, { status: 200 });
+    }
+
     if (!email || !subject || !lang) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }

@@ -10,7 +10,7 @@ type Props = {
   email?: string;
 };
 
-export default function DriverRatingBlock({ plate, province }: Props) {
+export default function DriverRatingBlock({ plate, province, email: propEmail }: Props) {
   const { lang } = useLanguage();
   const t = translations[lang];
 
@@ -18,36 +18,38 @@ export default function DriverRatingBlock({ plate, province }: Props) {
   const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [finalEmail, setFinalEmail] = useState("guest@myplatecheck.com");
+  const [finalEmail, setFinalEmail] = useState("");
 
+  // ✅ Один єдиний useEffect
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    let email = propEmail;
 
-    let email = "guest@myplatecheck.com";
-    const stored = localStorage.getItem("user");
-
-    try {
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed?.email) email = parsed.email;
+    if (!email) {
+      const stored = localStorage.getItem("user");
+      try {
+        const parsed = stored ? JSON.parse(stored) : null;
+        email = parsed?.email || "";
+      } catch (e) {
+        console.error("Failed to parse user", e);
       }
-    } catch (e) {
-      console.error("Failed to parse user", e);
-    }
 
-    if (email === "guest@myplatecheck.com") {
-      let guestId = localStorage.getItem("guestId");
-      if (!guestId) {
-        guestId = crypto.randomUUID();
-        localStorage.setItem("guestId", guestId);
+      if (!email || email === "guest@myplatecheck.com") {
+        let guestId = localStorage.getItem("guestId");
+        if (!guestId) {
+          guestId = crypto.randomUUID();
+          localStorage.setItem("guestId", guestId);
+        }
+        email = `guest-${guestId}@myplatecheck.com`;
       }
-      email = `guest-${guestId}@myplatecheck.com`;
     }
 
     setFinalEmail(email);
-  }, []);
+  }, [propEmail]);
 
+  // ✅ Завантаження рейтингу
   useEffect(() => {
+    if (!finalEmail) return;
+
     const fetchRating = async () => {
       try {
         const res = await fetch(
@@ -63,7 +65,7 @@ export default function DriverRatingBlock({ plate, province }: Props) {
       }
     };
 
-    if (finalEmail) fetchRating();
+    fetchRating();
   }, [plate, province, finalEmail]);
 
   const handleVote = async (type: "up" | "down") => {
@@ -76,12 +78,7 @@ export default function DriverRatingBlock({ plate, province }: Props) {
       const res = await fetch("/api/driver-rating", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plate,
-          province,
-          email: finalEmail,
-          type,
-        }),
+        body: JSON.stringify({ plate, province, email: finalEmail, type }),
       });
 
       if (res.ok) {
@@ -102,9 +99,7 @@ export default function DriverRatingBlock({ plate, province }: Props) {
   return (
     <>
       <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-800 mt-1 sm:mt-2">
-        <span className="font-semibold text-sm sm:text-base mr-1 sm:mr-2">
-          {t.rate_driver}
-        </span>
+        <span className="font-semibold text-sm sm:text-base mr-1 sm:mr-2">{t.rate_driver}</span>
         <button
           onClick={() => handleVote("up")}
           className={`px-1 py-[2px] sm:px-1.5 sm:py-1 rounded border text-xs sm:text-sm ${

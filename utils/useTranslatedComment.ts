@@ -13,10 +13,10 @@ export function useTranslatedComment({ id, text }: Props) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!text || !lang || lang === "UA") {
-      setTranslated(text);
-      return;
-    }
+   if (!text || !lang) {
+  setTranslated(text);
+  return;
+}
 
     const fetchTranslation = async () => {
       try {

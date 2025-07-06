@@ -40,6 +40,7 @@ model Comment {
   author    String?
   plate     String
   province  String
+  sourceLang String? 
   comment   String
   email     String?
   createdAt DateTime @default(now())
@@ -49,6 +50,8 @@ model Comment {
   pending   Boolean  @default(false)
   parentId  String?
   userId    String?
+
+
 
   // No relations — just logic in code
   // replies    Comment[]   @relation("ReplyThread", fields: [id], references: [parentId])

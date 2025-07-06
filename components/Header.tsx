@@ -158,9 +158,9 @@ const handleMouseLeave = () => {
   <Image
     src="/img/logo.png"
     alt="Logo"
-    width={150}
+    width={170}
     height={50}
-    className="w-[150px] h-[50px]"
+    className="w-[170px] h-[50px]"
     priority
   />
 </Link>
@@ -188,7 +188,7 @@ const handleMouseLeave = () => {
         <li key={prov}>
           <Link
             href={`/province/${prov.toLowerCase().replace(/\s+/g, "_")}`}
-            className="block px-4 py-2 text-gray-800 hover:bg-blue-50 hover:text-blue-700 transition"
+            className="block px-3 py-2 text-gray-800 hover:bg-blue-50 hover:text-blue-700 transition"
           >
             {prov}
           </Link>
@@ -222,7 +222,7 @@ const handleMouseLeave = () => {
                 <option value="FR">FR</option>
                 <option value="UA">UA</option>
               </select>
-              {user ? (
+              {user?.login && !user.login.startsWith("guest_") ? (
                 <div className="flex items-center gap-2 whitespace-nowrap overflow-hidden max-w-[250px] truncate">
                   <Link href="/account" className="underline uppercase">{user.login}</Link>
                   {user.pro && <span className="bg-yellow-400 text-white px-2 py-0.5 rounded text-xs uppercase">⭐ PRO</span>}
@@ -257,9 +257,9 @@ const handleMouseLeave = () => {
   <Image
     src="/img/logo.png"
     alt="Logo"
-    width={140}
+    width={120}
     height={50}
-    className="w-[140px] h-[50px]"
+    className="w-[140px] h-[45px]"
     priority
   />
 </Link>
@@ -270,7 +270,7 @@ const handleMouseLeave = () => {
                   placeholder={t.search_placeholder}
                   value={plate.toUpperCase()}
                   onChange={(e) => setPlate(e.target.value.toUpperCase())}
-                  className="w-[100px] px-2 py-1 rounded text-sm text-black border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  className="w-[90px] px-2 py-1 rounded text-sm text-black border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   maxLength={7}
                 />
                 <button type="submit" className="bg-white text-blue-800 font-semibold px-2 py-1 rounded hover:bg-gray-100 text-sm transition">
@@ -289,7 +289,7 @@ const handleMouseLeave = () => {
   </Link>
 )}
                 {user?.pro && <span className="bg-yellow-400 text-white px-2 py-0.5 rounded text-xs">⭐ PRO</span>}
-                {user ? (
+                {user?.login && !user.login.startsWith("guest_") ? (
                   <button onClick={() => {
                     localStorage.removeItem("user");
                     localStorage.removeItem("cart");

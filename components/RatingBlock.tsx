@@ -13,7 +13,6 @@ type RatingData = {
 type Props = {
   commentId: string;
   allRatings?: Record<string, RatingData>;
-  email?: string;
 };
 
 export default function RatingBlock({ commentId, allRatings }: Props) {
@@ -24,22 +23,51 @@ export default function RatingBlock({ commentId, allRatings }: Props) {
   const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [finalEmail, setFinalEmail] = useState("guest@myplatecheck.com");
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    let email = "guest@myplatecheck.com";
+    const stored = localStorage.getItem("user");
 
-    const votedComments = JSON.parse(localStorage.getItem("votedComments") || "[]");
-
-    if (votedComments.includes(commentId)) {
-      setVoted("up"); // або збережи тип голосу, якщо хочеш точність
+    try {
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.email) email = parsed.email;
+      }
+    } catch (e) {
+      console.error("Failed to parse user", e);
     }
 
-    if (allRatings && allRatings[commentId]) {
-      const data = allRatings[commentId];
-      setUpVotes(data.up);
-      setDownVotes(data.down);
+    if (email === "guest@myplatecheck.com") {
+      let guestId = localStorage.getItem("guestId");
+      if (!guestId) {
+        guestId = crypto.randomUUID();
+        localStorage.setItem("guestId", guestId);
+      }
+      email = `guest-${guestId}@myplatecheck.com`;
     }
-  }, [commentId, allRatings]);
+
+    setFinalEmail(email);
+  }, []);
+
+  useEffect(() => {
+  if (allRatings && allRatings[commentId]) {
+    const data = allRatings[commentId];
+    setUpVotes(data.up);
+    setDownVotes(data.down);
+    if (data.userVote === "up" || data.userVote === "down") {
+      setVoted(data.userVote);
+    }
+  } else {
+    // fallback на локальний votedComments
+    const votedComments = JSON.parse(localStorage.getItem("votedComments") || "{}");
+    const vote = votedComments[commentId];
+    if (vote === "up" || vote === "down") {
+      setVoted(vote);
+    }
+  }
+}, [commentId, allRatings, finalEmail]);
+
 
   const handleVote = async (type: "up" | "down") => {
     if (voted) {
@@ -48,15 +76,20 @@ export default function RatingBlock({ commentId, allRatings }: Props) {
     }
 
     try {
-      const res = await fetch("/api/rating", {
+      const res = await fetch("/api/comment-rating", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           commentId,
           type,
-          email: "guest@myplatecheck.com", // все одно потрібен для API
+          email: finalEmail,
         }),
       });
+
+      if (res.status === 400 || res.status === 409) {
+        setShowModal(true);
+        return;
+      }
 
       if (!res.ok) throw new Error("Vote failed");
 
@@ -64,8 +97,8 @@ export default function RatingBlock({ commentId, allRatings }: Props) {
       else setDownVotes((prev) => prev + 1);
       setVoted(type);
 
-      const votedComments = JSON.parse(localStorage.getItem("votedComments") || "[]");
-      votedComments.push(commentId);
+      const votedComments = JSON.parse(localStorage.getItem("votedComments") || "{}");
+      votedComments[commentId] = type;
       localStorage.setItem("votedComments", JSON.stringify(votedComments));
     } catch (err) {
       console.error("❌ Vote error:", err);

@@ -11,32 +11,23 @@ export async function GET(req: Request) {
   }
 
   const up = await prisma.commentRating.count({
-    where: {
-      commentId,
-      type: "up",
-    },
+    where: { commentId, type: "up" },
   });
 
   const down = await prisma.commentRating.count({
-    where: {
-      commentId,
-      type: "down",
-    },
+    where: { commentId, type: "down" },
   });
 
   const userVote = email
     ? await prisma.commentRating.findFirst({
-        where: {
-          commentId,
-          email,
-        },
+        where: { commentId, email },
       })
     : null;
 
   return NextResponse.json({
     up,
     down,
-    userVote: userVote?.type ?? null,
+    userVote: userVote?.type || null,
   });
 }
 
@@ -55,19 +46,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing plate or province in comment" }, { status: 400 });
   }
 
-  // Check if already voted
   const existing = await prisma.commentRating.findFirst({
-    where: {
-      commentId,
-      email,
-    },
+    where: { commentId, email },
   });
 
   if (existing) {
     return NextResponse.json({ error: "Already voted" }, { status: 409 });
   }
 
-  // Save new rating
   await prisma.commentRating.create({
     data: {
       commentId,
@@ -78,20 +64,13 @@ export async function POST(req: Request) {
     },
   });
 
-  // Return updated values
   const up = await prisma.commentRating.count({
-    where: {
-      commentId,
-      type: "up",
-    },
+    where: { commentId, type: "up" },
   });
 
   const down = await prisma.commentRating.count({
-    where: {
-      commentId,
-      type: "down",
-    },
+    where: { commentId, type: "down" },
   });
 
-  return NextResponse.json({ rating: { up, down } });
+  return NextResponse.json({ rating: { up, down }, userVote: type });
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma"; // адаптуй шлях до твого
+import { prisma } from "@/lib/prisma"; 
 import { OpenAI } from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
@@ -13,10 +13,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid JSON input" }, { status: 400 });
   }
 
-  const { commentId, text, language } = body;
+    const { commentId, text, language } = body;
 
   if (!commentId || !text || !language) {
     return NextResponse.json({ error: "Missing commentId, text, or language" }, { status: 400 });
+  }
+
+  // ⛔️ Захист: не перекладаємо на ту ж мову, з якої був оригінал
+  const originalComment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { sourceLang: true },
+  });
+
+  if (!originalComment) {
+    return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+  }
+
+  if (originalComment.sourceLang === language) {
+    return NextResponse.json({ translation: text });
   }
 
   try {
@@ -35,7 +49,7 @@ export async function POST(req: Request) {
       messages: [
         {
           role: "system",
-          content: `Ти — помічник для перекладу. Перекладай лише **дослівно**, без додавання пояснень, тлумачень, вигадування чи покращення. Просто переклади слово в слово те, що надіслав користувач.`,
+          content: `Ти — помічник для перекладу. Перекладай лише дослівно, без додавання пояснень, тлумачень, вигадування чи покращення. Переклади текст з мови оригіналу на ${language === "FR" ? "французьку" : language === "EN" ? "англійську" : "українську"}.`,
         },
         {
           role: "user",
