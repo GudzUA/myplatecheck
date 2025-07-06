@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.user.findFirst({
       where: { email },
       select: {
         id: true,

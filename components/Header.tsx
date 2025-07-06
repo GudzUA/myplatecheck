@@ -16,7 +16,7 @@ export default function Header() {
   const { lang, setLang } = useLanguage();
   const t = translations[lang];
   const [showLogin, setShowLogin] = useState(false);
-  const [user, setUser] = useState<{ login: string; pro?: boolean } | null>(null);
+  const [user, setUser] = useState<{ login: string; email: string; pro?: boolean } | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProvincesMobile, setShowProvincesMobile] = useState(false);
   const [showProvinces, setShowProvinces] = useState(false);
@@ -59,8 +59,9 @@ useEffect(() => {
 
   const checkUser = async () => {
     try {
-      const res = await fetch(`/api/auth/check-user?login=${user.login}`);
-      if (res.status === 404) {
+      const res = await fetch(`/api/auth/check-user?email=${user.email}`);
+if (res.status === 404) {
+
         localStorage.removeItem("user");
         setUser(null);
         window.location.reload(); // або router.push("/login") — якщо ти хочеш явно
@@ -151,7 +152,7 @@ const handleMouseLeave = () => {
   return (
     <>
       <nav className="bg-[url('/img/header-bg.png')] bg-cover bg-center text-white shadow-md px-4 py-2">
-        <div className="w-full px-4 md:px-8">
+        <div className="w-full px-1 sm:px-2 md:px-4 lg:px-8">
           {/* 🖥 Desktop */}
           <div className="hidden md:flex items-center justify-between gap-6">
             <Link href="/" className="w-[160px] h-auto">
@@ -280,50 +281,57 @@ const handleMouseLeave = () => {
             </div>
 
             {/* Line 2: Login + PRO + Cart + Lang + Burger */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1">
-                <span className="text-yellow-400 text-lg">👤</span>
-                {user?.login && (
-  <Link href="/account" className="text-sm font-semibold uppercase underline hover:text-green-300 transition">
-    {user.login}
-  </Link>
-)}
-                {user?.pro && <span className="bg-yellow-400 text-white px-2 py-0.5 rounded text-xs">⭐ PRO</span>}
-                {user?.login && !user.login.startsWith("guest_") ? (
-                  <button onClick={() => {
-                    localStorage.removeItem("user");
-                    localStorage.removeItem("cart");
-                    setUser(null);
-                    window.location.reload();
-                  }} className="text-sm underline ml-2 uppercase uppercase">{t.logout}</button>
-                ) : (
-                  <button onClick={() => setShowLogin(true)} className="text-sm underline ml-2 uppercase">{t.login}</button>
-                )}
+<div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap scrollbar-hide w-full px-0 mx-0">
+  <div className="flex items-center gap-1 pl-0 ml-0">
+    <span className="text-yellow-400 text-lg">👤</span>
+    {user?.login && (
+      <Link href="/account" className="text-sm font-semibold uppercase underline hover:text-green-300 transition max-w-[50px] overflow-hidden text-ellipsis whitespace-nowrap">
+        {user.login}
+      </Link>
+    )}
+    {user?.pro && (
+      <span className="bg-yellow-400 text-white px-0.5 py-0.5 rounded text-xs">⭐ PRO</span>
+    )}
+    {user?.login && !user.login.startsWith("guest_") ? (
+      <button onClick={() => {
+        localStorage.removeItem("user");
+        localStorage.removeItem("cart");
+        setUser(null);
+        window.location.reload();
+      }} className="text-sm underline ml-2 uppercase">
+        {t.logout}
+      </button>
+    ) : (
+      <button onClick={() => setShowLogin(true)} className="text-sm underline ml-2 uppercase">
+        {t.login}
+      </button>
+    )}
+  </div>
 
-              </div>
+  <div className="flex items-center gap-2 pr-0 ml-auto">
+    <button onClick={() => router.push("/cart")} className="relative">
+      <Image src="/img/cart-button.png" alt="Cart" width={30} height={30} />
+      {cartCount > 0 && (
+        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+          {cartCount}
+        </span>
+      )}
+    </button>
 
-              <div className="flex items-center gap-2">
-               <button onClick={() => router.push("/cart")} className="relative">
-  <Image src="/img/cart-button.png" alt="Cart" width={30} height={30} />
-  {cartCount > 0 && (
-    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
-      {cartCount}
-    </span>
-  )}
-</button>
+    <select
+      value={lang}
+      onChange={(e) => setLang(e.target.value as "UA" | "EN" | "FR")}
+      className="text-sm text-black px-1 py-0.5 border border-gray-300 rounded"
+    >
+      <option value="EN">EN</option>
+      <option value="FR">FR</option>
+      <option value="UA">UA</option>
+    </select>
 
-                <select
-                  value={lang}
-                  onChange={(e) => setLang(e.target.value as "UA" | "EN" | "FR")}
-                  className="text-sm text-black px-1 py-1 border border-gray-300 rounded"
-                >
-                  <option value="EN">EN</option>
-                  <option value="FR">FR</option>
-                  <option value="UA">UA</option>
-                </select>
-                <button onClick={() => setMenuOpen(!menuOpen)} className="text-3xl text-white px-2">☰</button>
-              </div>
-            </div>
+    <button onClick={() => setMenuOpen(!menuOpen)} className="text-3xl text-white px-1">☰</button>
+  </div>
+</div>
+
 
 {menuOpen && (
   <div className="bg-white border border-blue-200 rounded-xl shadow-sm w-full flex flex-col items-start p-4 space-y-3">

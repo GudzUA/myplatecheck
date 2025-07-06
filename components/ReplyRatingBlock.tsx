@@ -4,19 +4,32 @@ import { useEffect, useState } from "react";
 import { translations } from "../translations";
 import { useLanguage } from "../context/LanguageContext";
 
-type Props = {
-  replyId: string;
+type RatingData = {
+  up: number;
+  down: number;
+  userVote?: "up" | "down";
 };
 
-export default function ReplyRatingBlock({ replyId }: Props) {
+type Props = {
+  replyId: string;
+  allRatings: Record<string, RatingData>; 
+};
+
+export default function ReplyRatingBlock({ replyId, allRatings }: Props) {
   const { lang } = useLanguage();
   const t = translations[lang];
 
-  const [upVotes, setUpVotes] = useState(0);
-  const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [finalEmail, setFinalEmail] = useState("");
+
+  const rating = allRatings[replyId] || { up: 0, down: 0 };
+
+  useEffect(() => {
+    if (rating.userVote) {
+      setVoted(rating.userVote);
+    }
+  }, [rating.userVote]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -45,25 +58,6 @@ export default function ReplyRatingBlock({ replyId }: Props) {
     setFinalEmail(email);
   }, []);
 
-  useEffect(() => {
-    const fetchRating = async () => {
-      try {
-        const res = await fetch(`/api/reply-rating?replyId=${replyId}&email=${finalEmail}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setUpVotes(data.up || 0);
-        setDownVotes(data.down || 0);
-        if (data.userVote === "up" || data.userVote === "down") {
-          setVoted(data.userVote);
-        }
-      } catch (err) {
-        console.error("Fetch error:", err);
-      }
-    };
-
-    if (finalEmail) fetchRating();
-  }, [replyId, finalEmail]);
-
   const handleVote = async (type: "up" | "down") => {
     if (voted) {
       setShowModal(true);
@@ -74,17 +68,13 @@ export default function ReplyRatingBlock({ replyId }: Props) {
       const res = await fetch("/api/reply-rating", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          replyId,
-          email: finalEmail,
-          type,
-        }),
+        body: JSON.stringify({ replyId, email: finalEmail, type }),
       });
 
       if (res.ok) {
-        if (type === "up") setUpVotes((prev) => prev + 1);
-        else setDownVotes((prev) => prev + 1);
         setVoted(type);
+        // Після голосування бажано або refetch з batch, або оновити локально
+        // Але якщо не критично — можна залишити як є
       } else if (res.status === 409) {
         setShowModal(true);
       } else {
@@ -106,7 +96,7 @@ export default function ReplyRatingBlock({ replyId }: Props) {
             voted === "up" ? "bg-green-200" : "bg-white"
           } border`}
         >
-          👍 {upVotes}
+          👍 {rating.up}
         </button>
         <button
           onClick={() => handleVote("down")}
@@ -114,7 +104,7 @@ export default function ReplyRatingBlock({ replyId }: Props) {
             voted === "down" ? "bg-red-200" : "bg-white"
           } border`}
         >
-          👎 {downVotes}
+          👎 {rating.down}
         </button>
       </div>
 

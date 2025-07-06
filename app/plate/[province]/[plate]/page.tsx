@@ -59,6 +59,7 @@ export default function PlatePage() {
   const [replyDates, setReplyDates] = useState<Record<string, string>>({});
   const [embedHtmlMap, setEmbedHtmlMap] = useState<{ [id: string]: string }>({});
   const [ratings, setRatings] = useState<Record<string, RatingData>>({});
+  const [replyRatings, setReplyRatings] = useState<Record<string, RatingData>>({});
 
 
 useEffect(() => {
@@ -86,6 +87,25 @@ useEffect(() => {
 
       setComments(root);
       setReplyMap(replies);
+
+const allReplies = Object.values(replies).flat();
+const replyIds = allReplies.map(r => r.id);
+
+const stored = localStorage.getItem("user");
+const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
+const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
+
+fetch("/api/reply-rating/batch", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ replyIds, email: finalEmail }),
+})
+  .then(res => res.json())
+  .then((data: Record<string, RatingData>) => {
+    setReplyRatings(data);
+  })
+  .catch(err => console.error("❌ ReplyRating batch error:", err));
+
 
       const dates: Record<string, string> = {};
       for (const c of relevant) {
@@ -396,7 +416,7 @@ useEffect(() => {
 </div>
        <TranslatedComment id={reply.id} text={reply.comment} />
         <div className="mt-2 flex justify-end">
-         <ReplyRatingBlock replyId={reply.id} />
+         <ReplyRatingBlock replyId={reply.id} allRatings={replyRatings} />
         </div>
       </div>
     ))}

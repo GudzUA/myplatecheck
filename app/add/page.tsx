@@ -298,7 +298,7 @@ await fetch("/api/comments", {
   if (!mounted) return null; 
 
   return (
-    <main className="w-full min-h-[100dvh] max-w-2xl mx-auto px-4 py-10 sm:px-6 sm:max-w-xl md:max-w-2xl">
+    <main className="w-full min-h-screen max-w-md mx-auto px-2 sm:px-4 py-6">
       <h1 className="text-3xl font-bold text-blue-800 mb-8 text-center">{t.add_comment}</h1>
 
       {mounted && (
