@@ -13,6 +13,8 @@ import DonateButton from "../components/DonateButton";
 import BadgeList from "../components/BadgeList";
 import TranslatedComment from "../components/TranslatedComment";
 import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
+import { TranslationsProvider } from "@/context/TranslationsContext";
+import { useRef } from "react";
 
 
 
@@ -35,6 +37,8 @@ type Comment = {
   pending?: boolean;
   badges?: string[];
   videoUrl?: string; // ✅ нове поле для YouTube / TikTok
+  language: string;
+
 };
 
 export default function HomePage() {
@@ -48,6 +52,8 @@ export default function HomePage() {
   const [clientDates, setClientDates] = useState<Record<string, string>>({});
   const [embedHtmlMap, setEmbedHtmlMap] = useState<Record<string, string | null>>({});
   const [ratings, setRatings] = useState<Record<string, { up: number; down: number }>>({});
+  const [translationsMap, setTranslationsMap] = useState<Record<string, Record<string, string>>>({});
+
 
   const COMMENTS_PER_PAGE = 7;
 
@@ -62,6 +68,7 @@ const monthNames = {
 
 const now = new Date();
 const currentMonth = monthNames[lang][now.getMonth()];
+const fetchedLangsRef = useRef<Set<string>>(new Set());
 
   const start = (currentPage - 1) * COMMENTS_PER_PAGE;
   const end = start + COMMENTS_PER_PAGE;
@@ -131,6 +138,70 @@ function getEmbedHTML(url: string): string | null {
   return null;
 }
 
+useEffect(() => {
+  const untranslated = paginatedComments.filter((c) => c.language !== lang);
+  if (untranslated.length === 0) return;
+
+  if (fetchedLangsRef.current.has(lang)) return; // ✅ вже був запит для цієї мови
+
+  const ids = untranslated.map((c) => c.id);
+
+  fetch("/api/translate/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, lang }),
+  })
+    .then((res) => res.json())
+    .then(async (data: { translations: { commentId: string; text: string }[] }) => {
+      const batchMap: Record<string, string> = {};
+      for (const { commentId, text } of data.translations) {
+        batchMap[commentId] = text;
+      }
+
+      setTranslationsMap((prev) => ({
+        ...prev,
+        [lang]: {
+          ...(prev[lang] || {}),
+          ...batchMap,
+        },
+      }));
+
+      fetchedLangsRef.current.add(lang); 
+
+      const missing = untranslated.filter((c) => !batchMap[c.id]);
+      if (missing.length === 0) return;
+
+      const items = missing.map((c) => ({
+        commentId: c.id,
+        text: c.comment,
+        language: c.language,
+      }));
+
+      const resLive = await fetch("/api/translate/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, lang }),
+      });
+
+      const liveData = await resLive.json();
+
+      const liveMap: Record<string, string> = {};
+      for (const { id, text } of liveData.translations) {
+        liveMap[id] = text;
+      }
+
+      if (Object.keys(liveMap).length > 0) {
+        setTranslationsMap((prev) => ({
+          ...prev,
+          [lang]: {
+            ...(prev[lang] || {}),
+            ...liveMap,
+          },
+        }));
+      }
+    })
+    .catch((err) => console.error("❌ Batch+Live error", err));
+}, [paginatedComments, lang]);
 
 
 useEffect(() => {
@@ -297,9 +368,9 @@ useEffect(() => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="w-full lg:col-span-2 space-y-6">
           <h2 className="text-3xl font-bold text-blue-900 text-center mb-6">{t.latest_comments}</h2>
-          <div className="space-y-4">
-
-            {paginatedComments.map((c) => {
+           <TranslationsProvider translations={translationsMap[lang] || {}}>
+            <div className="space-y-4">
+             {paginatedComments.map((c) => {
               const plateImage = `/img/${c.province.toLowerCase().replace(/[^\w]/gi, "")}-plate.png`;
               return (
                 <div
@@ -335,7 +406,7 @@ useEffect(() => {
 
 {/* Виносимо переклад + embed ПОЗА Link */}
 <div className="max-h-[4.5em] overflow-hidden text-ellipsis">
-  <TranslatedComment id={c.id} text={c.comment} />
+  <TranslatedComment id={c.id} originalText={c.comment} />
 </div>
 
 
@@ -346,7 +417,6 @@ useEffect(() => {
     </div>
   </div>
 )}
-
 
 {Array.isArray(c.media) && c.media.length > 0 && (
   <div className="flex gap-2 mt-2 flex-wrap">
@@ -380,6 +450,7 @@ useEffect(() => {
               );
             })}
           </div>
+        </TranslationsProvider>
 
 <div className="overflow-x-auto mt-6">
   <div className="flex justify-center items-center gap-2 min-w-[300px]">

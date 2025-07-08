@@ -1,14 +1,16 @@
 "use client";
+import { useContext } from "react";
+import { TranslationsContext } from "@/context/TranslationsContext";
 
-import { useTranslatedComment } from "../utils/useTranslatedComment";
-
-interface Props {
+export default function TranslatedComment({
+  id,
+  originalText,
+}: {
   id: string;
-  text: string;
-}
+  originalText: string;
+}) {
+  const translations = useContext(TranslationsContext);
+  const translated = translations[id]; // ✅ тут вже без lang, бо передається translationsMap[lang]
 
-export default function TranslatedComment({ id, text }: Props) {
-  const { translated } = useTranslatedComment({ id, text });
-
-  return <>{translated}</>;
+  return <>{translated || originalText}</>;
 }

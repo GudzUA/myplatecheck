@@ -14,6 +14,7 @@ import Image from "next/image";
 import TranslatedComment from "../../../../components/TranslatedComment";
 import BadgeList from "../../../../components/BadgeList";
 import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
+import { TranslationsProvider } from "@/context/TranslationsContext";
 
 
 type RatingData = {
@@ -37,7 +38,8 @@ type Comment = {
   email?: string;        
   pending?: boolean;      
   userType?: string;
-  badges?: string[];     
+  badges?: string[];  
+  language: string;
 };
 
 export default function PlatePage() {
@@ -60,108 +62,177 @@ export default function PlatePage() {
   const [embedHtmlMap, setEmbedHtmlMap] = useState<{ [id: string]: string }>({});
   const [ratings, setRatings] = useState<Record<string, RatingData>>({});
   const [replyRatings, setReplyRatings] = useState<Record<string, RatingData>>({});
+  const [translationsMap, setTranslationsMap] = useState<Record<string, Record<string, string>>>({});
 
 
-useEffect(() => {
-  async function loadComments() {
-    try {
-      const res = await fetch(`/api/comments?plate=${plateCode}&province=${provinceCode}&includeReplies=true`);
-      const all: Comment[] = await res.json();
+  useEffect(() => {
+    async function loadComments() {
+      try {
+        const res = await fetch(`/api/comments?plate=${plateCode}&province=${provinceCode}&includeReplies=true`);
+        const all: Comment[] = await res.json();
 
-      const relevant = all.filter(
-        c =>
-          c.plate.toLowerCase() === plateCode.toLowerCase() &&
-          c.province.toLowerCase() === provinceCode.toLowerCase() &&
-          !c.pending
-      );
+        const relevant = all.filter(
+          c =>
+            c.plate.toLowerCase() === plateCode.toLowerCase() &&
+            c.province.toLowerCase() === provinceCode.toLowerCase() &&
+            !c.pending
+        );
 
-      const root = relevant.filter(c => !c.parentId);
+        const root = relevant.filter(c => !c.parentId);
 
-      const replies: Record<string, Comment[]> = {};
-      relevant.forEach(c => {
-        if (c.parentId) {
-          if (!replies[c.parentId]) replies[c.parentId] = [];
-          replies[c.parentId].push(c);
+        const replies: Record<string, Comment[]> = {};
+        relevant.forEach(c => {
+          if (c.parentId) {
+            if (!replies[c.parentId]) replies[c.parentId] = [];
+            replies[c.parentId].push(c);
+          }
+        });
+
+        setComments(root);
+        setReplyMap(replies);
+
+        const allReplies = Object.values(replies).flat();
+        const replyIds = allReplies.map(r => r.id);
+
+        const stored = localStorage.getItem("user");
+        const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
+        const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
+
+        fetch("/api/reply-rating/batch", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ replyIds, email: finalEmail }),
+        })
+          .then(res => res.json())
+          .then((data: Record<string, RatingData>) => {
+            setReplyRatings(data);
+          })
+          .catch(err => console.error("❌ ReplyRating batch error:", err));
+
+        const dates: Record<string, string> = {};
+        for (const c of relevant) {
+          dates[c.id] = new Date(c.createdAt).toLocaleString();
         }
-      });
+        setReplyDates(dates);
 
-      setComments(root);
-      setReplyMap(replies);
+        const embedMap: Record<string, string | null> = {};
+        for (const c of relevant) {
+          const rawText = [c.comment, c.videoUrl].filter(Boolean).join(" ");
+          const urls = [...rawText.matchAll(/https?:\/\/\S+/g)];
 
-const allReplies = Object.values(replies).flat();
-const replyIds = allReplies.map(r => r.id);
-
-const stored = localStorage.getItem("user");
-const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
-const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
-
-fetch("/api/reply-rating/batch", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ replyIds, email: finalEmail }),
-})
-  .then(res => res.json())
-  .then((data: Record<string, RatingData>) => {
-    setReplyRatings(data);
-  })
-  .catch(err => console.error("❌ ReplyRating batch error:", err));
-
-
-      const dates: Record<string, string> = {};
-      for (const c of relevant) {
-        dates[c.id] = new Date(c.createdAt).toLocaleString();
-      }
-      setReplyDates(dates);
-
-      // 👉 ОНОВЛЕНИЙ embedMap без зайвої змінної
-      const embedMap: Record<string, string | null> = {};
-
-      for (const c of relevant) {
-        const rawText = [c.comment, c.videoUrl].filter(Boolean).join(" ");
-        const urls = [...rawText.matchAll(/https?:\/\/\S+/g)];
-
-        embedMap[c.id] = urls
-          .map(match => getEmbedHTML(match[0]))
-          .filter(Boolean)
-          .join("<br/>") || null;
-      }
-
-      const cleanedMap: { [id: string]: string } = {};
-      for (const key in embedMap) {
-        if (embedMap[key]) {
-          cleanedMap[key] = embedMap[key]!;
+          embedMap[c.id] = urls
+            .map(match => getEmbedHTML(match[0]))
+            .filter(Boolean)
+            .join("<br/>") || null;
         }
-      }
 
-      setEmbedHtmlMap(cleanedMap);
-    } catch (err) {
-      console.error("❌ ПОМИЛКА:", err);
+        const cleanedMap: { [id: string]: string } = {};
+        for (const key in embedMap) {
+          if (embedMap[key]) {
+            cleanedMap[key] = embedMap[key]!;
+          }
+        }
+
+        setEmbedHtmlMap(cleanedMap);
+      } catch (err) {
+        console.error("❌ ПОМИЛКА:", err);
+      }
     }
-  }
 
-  loadComments();
-}, [plateCode, provinceCode]);
+    loadComments();
+  }, [plateCode, provinceCode]);
 
-useEffect(() => {
-  if (comments.length === 0) return;
+  useEffect(() => {
+    if (comments.length === 0) return;
 
-  const stored = localStorage.getItem("user");
-  const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
+    const stored = localStorage.getItem("user");
+    const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
 
-  const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
+    const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
 
-  fetch("/api/comment-rating/batch", {
+    fetch("/api/comment-rating/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ commentIds: comments.map(c => c.id), email: finalEmail }),
+    })
+      .then(res => res.json())
+      .then((data: Record<string, RatingData>) => {
+        setRatings(data);
+      })
+      .catch(err => console.error("❌ Rating batch error:", err));
+  }, [comments, plateCode]);
+
+ useEffect(() => {
+  const allComments = [...comments, ...Object.values(replyMap).flat()];
+  const ids = allComments.map((c) => c.id);
+  if (!ids.length) return;
+
+  fetch("/api/translate/batch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ commentIds: comments.map(c => c.id), email: finalEmail }),
+    body: JSON.stringify({ ids, lang }),
   })
-    .then(res => res.json())
-    .then((data: Record<string, RatingData>) => {
-      setRatings(data);
-    })
-    .catch(err => console.error("❌ Rating batch error:", err));
-}, [comments, plateCode]);
+    .then((res) => res.json())
+    .then((data: { translations: { commentId: string; text: string }[] }) => {
+      const batchMap: Record<string, string> = {};
+      for (const { commentId, text } of data.translations) {
+        batchMap[commentId] = text;
+      }
 
+      // Уникаємо оновлення, якщо нічого не змінилось
+      setTranslationsMap((prev) => {
+        const prevLangMap = prev[lang] || {};
+        const hasChanges = Object.keys(batchMap).some(id => batchMap[id] !== prevLangMap[id]);
+        if (!hasChanges) return prev;
+
+        return {
+          ...prev,
+          [lang]: {
+            ...prevLangMap,
+            ...batchMap,
+          },
+        };
+      });
+    })
+    .catch(err => console.error("❌ Batch translation fetch error:", err));
+}, [comments, replyMap, lang]);
+
+useEffect(() => {
+  const replies = Object.values(replyMap).flat();
+  const untranslatedReplies = replies.filter(
+    (r) => r.language !== lang && !translationsMap[lang]?.[r.id]
+  );
+
+  if (!untranslatedReplies.length) return;
+
+  const items = untranslatedReplies.map((r) => ({
+    commentId: r.id,
+    text: r.comment,
+    language: r.language,
+  }));
+
+  fetch("/api/translate/live", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items, lang }),
+  })
+    .then((res) => res.json())
+    .then((data: { translations: { id: string; text: string }[] }) => {
+      const liveMap: Record<string, string> = {};
+      for (const { id, text } of data.translations) {
+        liveMap[id] = text;
+      }
+
+      setTranslationsMap((prev) => ({
+        ...prev,
+        [lang]: {
+          ...(prev[lang] || {}),
+          ...liveMap,
+        },
+      }));
+    })
+    .catch(err => console.error("❌ Live translation fetch error:", err));
+}, [replyMap, lang]);
 
 function getEmbedHTML(url: string): string | null {
   if (!url) return null;
@@ -230,7 +301,7 @@ const handleReplySubmit = async (parentId: string) => {
   email: user?.email || null,
   pending: false,
   userId: user.id,
-  sourceLang: lang,
+  language: lang,
   badges: user.badges || [],
 
 };
@@ -319,6 +390,7 @@ useEffect(() => {
 
 
   return (
+<TranslationsProvider translations={translationsMap[lang] || {}}>
     <main className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex items-start justify-start gap-6 mb-6">
         <div className="relative inline-block w-[110px] h-[55px]">
@@ -363,8 +435,7 @@ useEffect(() => {
 </span>
 · {replyDates[c.id] || ""}
 </div>
-<TranslatedComment id={c.id} text={c.comment} />
-
+   <TranslatedComment id={c.id} originalText={c.comment} />
   {embedHtmlMap[c.id] && (
   <div className="mt-2 w-full max-w-full overflow-hidden">
     <div className="max-w-[100%] sm:max-w-[540px] mx-auto">
@@ -414,7 +485,7 @@ useEffect(() => {
   <BadgeList badges={reply.badges || []} />
   <strong>{["Гість", "Guest", "Invité"].includes(reply.author) ? t.anonymous : reply.author}</strong> · <strong>{provinceAbbreviations[c.province.toLowerCase()] || c.province}</strong> · {replyDates[reply.id] || ""}
 </div>
-       <TranslatedComment id={reply.id} text={reply.comment} />
+       <TranslatedComment id={reply.id} originalText={reply.comment} />
         <div className="mt-2 flex justify-end">
          <ReplyRatingBlock replyId={reply.id} allRatings={replyRatings} />
         </div>
@@ -491,6 +562,6 @@ useEffect(() => {
 
       {showLogin && <LoginRegisterModal onClose={() => setShowLogin(false)} />}
     </main>
+</TranslationsProvider>
   );
 }
-

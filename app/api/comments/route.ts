@@ -21,11 +21,12 @@ export async function POST(req: Request) {
     media: body.media || [],
     videoUrl: body.videoUrl || "",
     parentId: body.parentId || null,
-    sourceLang: body.sourceLang, 
+    language: body.language, // ✅ ось це головне
     pending: body.parentId ? false : true,
     badges: Array.isArray(body.badges) ? body.badges : [],
   },
 });
+
 
 
     console.log("✅ Коментар збережено:", newComment);

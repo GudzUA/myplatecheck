@@ -40,7 +40,7 @@ model Comment {
   author    String?
   plate     String
   province  String
-  sourceLang String? 
+  language  String?  
   comment   String
   email     String?
   createdAt DateTime @default(now())
@@ -64,10 +64,11 @@ model Comment {
 
 model CommentTranslation {
   id        String   @id @default(cuid())
-  commentId String // 🔁 зв'язок логічний, без FK
+  commentId String
   language  String
   text      String
   createdAt DateTime @default(now())
+
 }
 
 model CommentRating {

@@ -32,7 +32,7 @@ type Comment = {
   badges?: string[];     
   pending?: boolean;   
   userId?: string;
-  sourceLang: string;
+  language: string;
 };
 
 type AppUser = {
@@ -264,7 +264,7 @@ const userComments = allComments.filter(
     : ["guest"],
   pending: true,
   userId: currentUser?.id,
-  sourceLang: lang,
+  language: lang,
 };
 
 await fetch("/api/comments", {

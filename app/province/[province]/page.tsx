@@ -12,6 +12,8 @@ import { translations } from "../../../translations";
 import BadgeList from "../../../components/BadgeList";
 import TranslatedComment from "../../../components/TranslatedComment";
 import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
+import { TranslationsProvider } from "@/context/TranslationsContext";
+import { useRef } from "react";
 
 
 type RatingData = {
@@ -31,6 +33,7 @@ type CommentData = {
   author: string;
   badges?: string[];
   email?: string;
+  language: string;
 };
 
 
@@ -49,25 +52,12 @@ export default function ProvincePage() {
   const parsed = stored ? JSON.parse(stored) : null;
   const email = parsed?.email || "guest";
   const finalEmail = email === "guest" ? `guest-${provinceSlug}@myplatecheck.com` : email;
+  const [translationsMap, setTranslationsMap] = useState<Record<string, Record<string, string>>>({});
+
+const fetchedLangsRef = useRef<Set<string>>(new Set());
 
 useEffect(() => {
-  if (comments.length === 0) return;
-
-  fetch("/api/comment-rating/batch", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ commentIds: comments.map(c => c.id), email: finalEmail }),
-  })
-    .then(res => res.json())
-    .then((data: Record<string, RatingData>) => {
-      setRatings(data);
-    })
-    .catch(err => console.error("❌ Rating batch error:", err));
-}, [comments, finalEmail]);
-
-
-useEffect(() => {
-  async function fetchComments() {
+  async function fetchAll() {
     try {
       const res = await fetch(`/api/comments?province=${provinceSlug}`);
       const data = await res.json();
@@ -79,20 +69,100 @@ useEffect(() => {
 
       setComments(data);
 
+      // 🕒 Дати
       const dateMap: Record<string, string> = {};
       for (const c of data) {
         dateMap[c.id] = new Date(c.createdAt).toLocaleDateString();
       }
       setClientDates(dateMap);
+
+      const commentIds = data.map((c: CommentData) => c.id).filter(id => !!id);
+
+      // 👍 Рейтинг
+      const ratingRes = await fetch("/api/comment-rating/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentIds, email: finalEmail }),
+      });
+      const ratingData = await ratingRes.json();
+      setRatings(ratingData);
+
     } catch (err) {
-      console.error("❌ Помилка завантаження:", err);
+      console.error("❌ ProvincePage fetchAll error:", err);
     }
   }
 
-  fetchComments();
-}, [provinceSlug]);
+  fetchAll();
+}, [provinceSlug, lang]);
+
+useEffect(() => {
+  const untranslated = comments.filter((c) => c.language !== lang);
+  if (untranslated.length === 0) return;
+
+  if (fetchedLangsRef.current.has(lang)) return; // ✅ вже був запит для цієї мови
+
+  const ids = untranslated.map((c) => c.id);
+
+  fetch("/api/translate/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, lang }),
+  })
+    .then((res) => res.json())
+    .then(async (data: { translations: { commentId: string; text: string }[] }) => {
+      const batchMap: Record<string, string> = {};
+      for (const { commentId, text } of data.translations) {
+        batchMap[commentId] = text;
+      }
+
+      setTranslationsMap((prev) => ({
+        ...prev,
+        [lang]: {
+          ...(prev[lang] || {}),
+          ...batchMap,
+        },
+      }));
+
+      fetchedLangsRef.current.add(lang); // ✅ відмічаємо, що завантажили
+
+      const missing = untranslated.filter((c) => !batchMap[c.id]);
+      if (missing.length === 0) return;
+
+      const items = missing.map((c) => ({
+        commentId: c.id,
+        text: c.comment,
+        language: c.language,
+      }));
+
+      const resLive = await fetch("/api/translate/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, lang }),
+      });
+
+      const liveData = await resLive.json();
+
+      const liveMap: Record<string, string> = {};
+      for (const { id, text } of liveData.translations) {
+        liveMap[id] = text;
+      }
+
+      if (Object.keys(liveMap).length > 0) {
+        setTranslationsMap((prev) => ({
+          ...prev,
+          [lang]: {
+            ...(prev[lang] || {}),
+            ...liveMap,
+          },
+        }));
+      }
+    })
+    .catch((err) => console.error("❌ Batch+Live error", err));
+}, [comments, lang]);
+
 
   return (
+   <TranslationsProvider translations={translationsMap[lang] || {}}>
     <main className="max-w-4xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6 capitalize">
         {t.comments_for}: {cleaned}
@@ -138,7 +208,7 @@ useEffect(() => {
                      </div>
                   </div>
                   <div className="max-h-[4.5em] overflow-hidden text-ellipsis">
-  <TranslatedComment id={c.id} text={c.comment} />
+ <TranslatedComment id={c.id} originalText={c.comment} />
 </div>
                   {embed && <div className="mt-2">{parse(embed)}</div>}
                   {Array.isArray(c.media) && c.media.length > 0 && (
@@ -177,5 +247,6 @@ useEffect(() => {
         </div>
       )}
     </main>
+   </TranslationsProvider>
   );
 }

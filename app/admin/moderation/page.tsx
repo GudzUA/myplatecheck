@@ -5,6 +5,7 @@ import Image from "next/image";
 import TranslatedComment from "../../../components/TranslatedComment";
 import { useLanguage } from "@/context/LanguageContext";
 import { translations } from "@/translations";
+import { TranslationsProvider } from "@/context/TranslationsContext";
 
 // Типізація
 interface Comment {
@@ -18,6 +19,7 @@ interface Comment {
   email?: string;
   videoUrl?: string;
   badges?: string[];
+  language: string;
   media?: {
     name: string;
     type: string;
@@ -37,9 +39,84 @@ export default function ModerationPage() {
   const [showReasonSelector, setShowReasonSelector] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const tiktokRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [translationsMap, setTranslationsMap] = useState<Record<string, Record<string, string>>>({});
+  const fetchedLangsRef = useRef<Set<string>>(new Set());
 
 const { lang } = useLanguage();
 const t = translations[lang];
+
+useEffect(() => {
+  if (!pendingComments.length) return;
+
+  const untranslated = pendingComments.filter(
+    (c) => c.language !== lang && !translationsMap[lang]?.[c.id]
+  );
+
+  if (!untranslated.length) return;
+
+  // Не робимо дубльовані запити
+  if (fetchedLangsRef.current.has(lang)) return;
+
+  const ids = untranslated.map(c => c.id);
+
+  fetch("/api/translate/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, lang }),
+  })
+    .then((res) => res.json())
+    .then(async (data: { translations: { commentId: string; text: string }[] }) => {
+      const batchMap: Record<string, string> = {};
+      for (const { commentId, text } of data.translations) {
+        batchMap[commentId] = text;
+      }
+
+      setTranslationsMap(prev => ({
+        ...prev,
+        [lang]: {
+          ...(prev[lang] || {}),
+          ...batchMap,
+        },
+      }));
+
+      fetchedLangsRef.current.add(lang);
+
+      const missing = untranslated.filter(c => !batchMap[c.id]);
+      if (!missing.length) return;
+
+      const items = missing.map(c => ({
+        commentId: c.id,
+        text: c.comment,
+        language: c.language,
+      }));
+
+      const resLive = await fetch("/api/translate/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, lang }),
+      });
+
+      const liveData = await resLive.json();
+
+      const liveMap: Record<string, string> = {};
+      for (const { id, text } of liveData.translations) {
+        liveMap[id] = text;
+      }
+
+      if (Object.keys(liveMap).length > 0) {
+        setTranslationsMap(prev => ({
+          ...prev,
+          [lang]: {
+            ...(prev[lang] || {}),
+            ...liveMap,
+          },
+        }));
+      }
+    })
+    .catch((err) => console.error("❌ Translation fetch error:", err));
+}, [pendingComments, lang]);
+
+
 
   useEffect(() => {
     async function fetchComments() {
@@ -52,6 +129,31 @@ const t = translations[lang];
         }
         const filtered = data.filter((c) => c.pending);
         setPendingComments(filtered);
+        fetchedLangsRef.current = new Set();
+
+const items = filtered
+  .filter((c) => c.language && c.language !== lang)
+  .map((c) => ({ id: c.id, text: c.comment }));
+
+if (items.length > 0) {
+  const batchRes = await fetch("/api/translate/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids: items.map(i => i.id), lang }),
+  });
+  const batchData = await batchRes.json();
+  const batchMap: Record<string, string> = {};
+  for (const item of batchData.translations || []) {
+    if (item.language === lang) {
+      batchMap[item.commentId] = item.text;
+    }
+  }
+  setTranslationsMap(prev => ({
+    ...prev,
+    [lang]: batchMap,
+  }));
+}
+
       } catch (err) {
         console.error("❌ Помилка при завантаженні коментарів:", err);
       }
@@ -84,7 +186,7 @@ const t = translations[lang];
       }
     }, 100);
   }
-}, [pendingComments]);
+}, [pendingComments, lang]);
 
 
   const allowComment = async (id: string) => {
@@ -95,6 +197,7 @@ const t = translations[lang];
   });
 
   const approvedComment = pendingComments.find((c) => c.id === id);
+
 
   // 🔔 Надсилаємо email тільки якщо він є
   if (approvedComment?.email && approvedComment.email !== "guest@myplatecheck.com") {
@@ -140,6 +243,7 @@ const t = translations[lang];
 
 
   return (
+   <TranslationsProvider translations={translationsMap[lang] || {}}>
     <main className="max-w-3xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">{t.moderation_title}</h1>
       {pendingComments.length === 0 ? (
@@ -260,7 +364,7 @@ setTimeout(() => {
                 </div>
               ) : null}
 
-              <TranslatedComment id={c.id} text={c.comment} />
+              <TranslatedComment id={c.id} originalText={c.comment} />
               <div className="flex flex-col gap-2 items-end">
                 <button
                   onClick={() => allowComment(c.id)}
@@ -340,5 +444,6 @@ setTimeout(() => {
         </div>
       )}
     </main>
+   </TranslationsProvider>
   );
 }
