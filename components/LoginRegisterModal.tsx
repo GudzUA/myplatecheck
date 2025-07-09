@@ -17,23 +17,13 @@ export default function LoginRegisterModal({
   promoCode?: string;
 }) {
 
-useEffect(() => {
-  document.body.style.overflow = "hidden";
-
-  return () => {
-    document.body.style.overflow = "auto";
-
-    // Додаємо імпульс і зміщення
-    setTimeout(() => {
-      window.dispatchEvent(new Event("resize"));
-      window.scrollTo(0, 0);
-
-      // Явно тригерим перерендер (якщо flex/container не відновлюється)
-      document.body.style.width = "auto"; // або "100%"
-
-    }, 50);
-  };
-}, []);
+setTimeout(() => {
+  document.body.removeAttribute("style");
+  document.documentElement.style.width = "100%";
+  document.documentElement.style.overflowX = "hidden";
+  window.scrollTo(0, 0);
+  window.dispatchEvent(new Event("resize"));
+}, 100);
 
 
   const [email, setEmail] = useState("");
