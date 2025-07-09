@@ -5,16 +5,30 @@ import { useLanguage } from "../context/LanguageContext";
 import { translations } from "../translations";
 import Link from "next/link";
 import { assignBadges } from "../utils/badges";
-
+import { useEffect } from "react";
 
 
 export default function LoginRegisterModal({
+
   onClose,
   promoCode,
 }: {
   onClose: () => void;
   promoCode?: string;
 }) {
+
+useEffect(() => {
+  document.body.style.overflow = "hidden";
+  return () => {
+    document.body.style.overflow = "auto";
+    setTimeout(() => {
+      window.dispatchEvent(new Event("resize"));
+      window.scrollTo(0, 0);
+    }, 50);
+  };
+}, []);
+
+
   const [email, setEmail] = useState("");
   const [login, setLogin] = useState("");
   const [plate, setPlate] = useState("");
