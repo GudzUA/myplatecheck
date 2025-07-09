@@ -17,13 +17,17 @@ export default function LoginRegisterModal({
   promoCode?: string;
 }) {
 
-setTimeout(() => {
-  document.body.removeAttribute("style");
-  document.documentElement.style.width = "100%";
-  document.documentElement.style.overflowX = "hidden";
-  window.scrollTo(0, 0);
-  window.dispatchEvent(new Event("resize"));
-}, 100);
+useEffect(() => {
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.removeAttribute("style");
+      document.documentElement.style.width = "100%";
+      document.documentElement.style.overflowX = "hidden";
+      window.scrollTo(0, 0);
+      window.dispatchEvent(new Event("resize"));
+    };
+  }, []);
 
 
   const [email, setEmail] = useState("");
