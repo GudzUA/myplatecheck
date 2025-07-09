@@ -15,7 +15,7 @@ import TranslatedComment from "../components/TranslatedComment";
 import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
 import { TranslationsProvider } from "@/context/TranslationsContext";
 import { useRef } from "react";
-
+import { getFinalEmail } from "@/utils/getFinalEmail";
 
 
 type MediaItem = {
@@ -142,7 +142,7 @@ useEffect(() => {
   const untranslated = paginatedComments.filter((c) => c.language !== lang);
   if (untranslated.length === 0) return;
 
-  if (fetchedLangsRef.current.has(lang)) return; // ✅ вже був запит для цієї мови
+  if (fetchedLangsRef.current.has(lang)) return; 
 
   const ids = untranslated.map((c) => c.id);
 
@@ -306,28 +306,27 @@ useEffect(() => {
 
 useEffect(() => {
   async function fetchRatings() {
-  const commentIds = comments.map((c) => c.id); // ✅ ТУТ ФОРМУЄМО
-  if (commentIds.length === 0) return;
+    const commentIds = comments.map((c) => c.id);
+    if (commentIds.length === 0) return;
 
-  try {
-    const user = localStorage.getItem("user");
-const email = user ? JSON.parse(user).email : "guest";
+    try {
+      const email = getFinalEmail(); 
 
-const res = await fetch("/api/comment-rating/batch", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ commentIds, email }), // ✅ тепер і commentIds, і email
-});
-    const data = await res.json();
-    setRatings(data); // ✅ не забудь зберегти
-  } catch (err) {
-    console.error("Rating fetch error", err);
+      const res = await fetch("/api/comment-rating/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ commentIds, email }),
+      });
+
+      const data = await res.json();
+      setRatings(data);
+    } catch (err) {
+      console.error("Rating fetch error", err);
+    }
   }
-}
-
 
   fetchRatings();
-}, [comments]); // 🔁 не забути додати comments у залежності
+}, [comments]);
 
 
 useEffect(() => {
@@ -397,7 +396,17 @@ useEffect(() => {
       className="w-full h-full object-contain"
     />
     <div className="absolute inset-0 flex items-center justify-center">
-      <span className="text-[15px] sm:text-[21px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
+      <span
+  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-800"
+  style={{
+    fontSize: "22px",
+    fontWeight: 600,
+    transform: "translate(-50%, -50%) scaleX(0.82) scaleY(1.35)",
+    letterSpacing: "-0.03em",
+    fontFamily: "'Inter', sans-serif",
+    whiteSpace: "nowrap",
+  }}
+>
         {c.plate}
       </span>
     </div>

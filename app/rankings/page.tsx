@@ -67,9 +67,20 @@ export default function RatingPage() {
               height={45}
               className="object-contain w-full h-full shadow-sm rounded"
             />
-            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[13px] font-bold tracking-wide text-blue-900 scale-y-110">
-              {item.plate}
-            </span>
+            <span
+  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-900"
+  style={{
+    fontSize: "14px",
+    fontWeight: 600,
+    transform: "translate(-50%, -50%) scaleX(0.82) scaleY(1.35)",
+    letterSpacing: "-0.03em",
+    fontFamily: "'Inter', sans-serif",
+    whiteSpace: "nowrap",
+  }}
+>
+  {item.plate}
+</span>
+
           </div>
         </Link>
       </td>

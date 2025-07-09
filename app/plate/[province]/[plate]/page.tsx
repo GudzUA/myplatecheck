@@ -15,7 +15,7 @@ import TranslatedComment from "../../../../components/TranslatedComment";
 import BadgeList from "../../../../components/BadgeList";
 import { provinceAbbreviations } from "@/utils/provinceAbbreviations";
 import { TranslationsProvider } from "@/context/TranslationsContext";
-
+import { getFinalEmail } from "@/utils/getFinalEmail";
 
 type RatingData = {
   up: number;
@@ -94,9 +94,7 @@ export default function PlatePage() {
         const allReplies = Object.values(replies).flat();
         const replyIds = allReplies.map(r => r.id);
 
-        const stored = localStorage.getItem("user");
-        const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
-        const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
+        const finalEmail = getFinalEmail();
 
         fetch("/api/reply-rating/batch", {
           method: "POST",
@@ -145,10 +143,8 @@ export default function PlatePage() {
   useEffect(() => {
     if (comments.length === 0) return;
 
-    const stored = localStorage.getItem("user");
-    const email = stored ? JSON.parse(stored)?.email || "guest" : "guest";
 
-    const finalEmail = email === "guest" ? `guest-${plateCode}@myplatecheck.com` : email;
+    const finalEmail = getFinalEmail();
 
     fetch("/api/comment-rating/batch", {
       method: "POST",
@@ -232,7 +228,8 @@ useEffect(() => {
       }));
     })
     .catch(err => console.error("❌ Live translation fetch error:", err));
-}, [replyMap, lang]);
+}, [replyMap, lang, translationsMap]);
+
 
 function getEmbedHTML(url: string): string | null {
   if (!url) return null;
@@ -401,7 +398,17 @@ useEffect(() => {
   height={75}
   className="w-full h-full object-contain"
 />
-          <span className="absolute top-[50%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-[18px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">{plateCode}</span>
+          <span
+  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-900"
+  style={{
+    fontSize: "16px",
+    fontWeight: 600,
+    transform: "translate(-50%, -50%) scaleX(0.82) scaleY(1.35)",
+    letterSpacing: "-0.03em",
+    fontFamily: "'Inter', sans-serif",
+    whiteSpace: "nowrap",
+  }}
+>{plateCode}</span>
         </div>
         <div className="flex flex-col justify-center">
           <div className="text-xl font-semibold text-gray-800 mb-2">CAR</div>

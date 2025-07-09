@@ -16,12 +16,6 @@ import { TranslationsProvider } from "@/context/TranslationsContext";
 import { useRef } from "react";
 
 
-type RatingData = {
-  up: number;
-  down: number;
-  userVote?: "up" | "down";
-};
-
 type CommentData = {
   id: string;
   plate: string;
@@ -47,11 +41,8 @@ export default function ProvincePage() {
   const [clientDates, setClientDates] = useState<Record<string, string>>({});
   const cleaned = rawProvince.replace(/[^\w]/gi, "").toLowerCase();
   const provinceSlug = decodeURIComponent(cleaned);
-  const [ratings, setRatings] = useState<Record<string, RatingData>>({});
-  const stored = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-  const parsed = stored ? JSON.parse(stored) : null;
-  const email = parsed?.email || "guest";
-  const finalEmail = email === "guest" ? `guest-${provinceSlug}@myplatecheck.com` : email;
+  const [ratings, setRatings] = useState<Record<string, { up: number; down: number; userVote?: "up" | "down" }>>({});
+
   const [translationsMap, setTranslationsMap] = useState<Record<string, Record<string, string>>>({});
 
 const fetchedLangsRef = useRef<Set<string>>(new Set());
@@ -78,11 +69,14 @@ useEffect(() => {
 
       const commentIds = data.map((c: CommentData) => c.id).filter(id => !!id);
 
-      // 👍 Рейтинг
+      // 👍 Рейтинг (із getFinalEmail)
+      const { getFinalEmail } = await import("@/utils/getFinalEmail");
+      const email = getFinalEmail();
+
       const ratingRes = await fetch("/api/comment-rating/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ commentIds, email: finalEmail }),
+        body: JSON.stringify({ commentIds, email }),
       });
       const ratingData = await ratingRes.json();
       setRatings(ratingData);
@@ -94,6 +88,8 @@ useEffect(() => {
 
   fetchAll();
 }, [provinceSlug, lang]);
+;
+
 
 useEffect(() => {
   const untranslated = comments.filter((c) => c.language !== lang);
@@ -202,7 +198,17 @@ useEffect(() => {
       className="w-full h-full object-contain"
     />
                        <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[15px] sm:text-[21px] font-bold tracking-[0.015em] text-blue-900 drop-shadow scale-y-125">
+                      <span
+  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-900"
+  style={{
+    fontSize: "22px",
+    fontWeight: 600,
+    transform: "translate(-50%, -50%) scaleX(0.82) scaleY(1.35)",
+    letterSpacing: "-0.03em",
+    fontFamily: "'Inter', sans-serif",
+    whiteSpace: "nowrap",
+  }}
+>
                        {c.plate}
                      </span>
                      </div>
