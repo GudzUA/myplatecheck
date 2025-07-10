@@ -56,7 +56,20 @@ export default function ReplyRatingBlock({ replyId, allRatings }: Props) {
     }
 
     setFinalEmail(email);
-  }, []);
+
+    // ✅ Перевіряємо локально, чи голосував
+    const storedVotes = localStorage.getItem("votedReplies");
+    if (storedVotes) {
+      try {
+        const parsedVotes = JSON.parse(storedVotes);
+        if (parsedVotes[replyId]) {
+          setVoted(parsedVotes[replyId]);
+        }
+      } catch (err) {
+        console.error("Failed to parse votedReplies", err);
+      }
+    }
+  }, [replyId]);
 
   const handleVote = async (type: "up" | "down") => {
     if (voted) {
@@ -73,8 +86,16 @@ export default function ReplyRatingBlock({ replyId, allRatings }: Props) {
 
       if (res.ok) {
         setVoted(type);
-        // Після голосування бажано або refetch з batch, або оновити локально
-        // Але якщо не критично — можна залишити як є
+
+        // ✅ Зберігаємо в localStorage
+        const storedVotes = localStorage.getItem("votedReplies");
+        let parsedVotes: Record<string, "up" | "down"> = {};
+        try {
+          parsedVotes = storedVotes ? JSON.parse(storedVotes) : {};
+        } catch {}
+
+        parsedVotes[replyId] = type;
+        localStorage.setItem("votedReplies", JSON.stringify(parsedVotes));
       } else if (res.status === 409) {
         setShowModal(true);
       } else {
