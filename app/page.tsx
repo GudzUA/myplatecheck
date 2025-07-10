@@ -399,7 +399,7 @@ useEffect(() => {
       <span
   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-800 text-[13px] sm:text-[20px] font-bold"
   style={{
-    transform: "translate(-50%, -50%) scaleX(0.82) scaleY(1.35)",
+    transform: "translate(-50%, -50%) scaleX(0.82) scaleY(1.60)",
     letterSpacing: "-0.03em",
     fontFamily: "'Inter', sans-serif",
     whiteSpace: "nowrap",
