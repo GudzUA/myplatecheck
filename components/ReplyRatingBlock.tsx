@@ -12,19 +12,24 @@ type RatingData = {
 
 type Props = {
   replyId: string;
-  allRatings: Record<string, RatingData>;
+  allRatings: Record<string, RatingData>; 
 };
 
 export default function ReplyRatingBlock({ replyId, allRatings }: Props) {
   const { lang } = useLanguage();
   const t = translations[lang];
 
-  const initial = allRatings[replyId] || { up: 0, down: 0 };
-  const [upVotes, setUpVotes] = useState(initial.up);
-  const [downVotes, setDownVotes] = useState(initial.down);
-  const [voted, setVoted] = useState<"up" | "down" | null>(initial.userVote || null);
+  const [voted, setVoted] = useState<"up" | "down" | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [finalEmail, setFinalEmail] = useState("");
+
+  const rating = allRatings[replyId] || { up: 0, down: 0 };
+
+  useEffect(() => {
+    if (rating.userVote) {
+      setVoted(rating.userVote);
+    }
+  }, [rating.userVote]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -51,45 +56,64 @@ export default function ReplyRatingBlock({ replyId, allRatings }: Props) {
     }
 
     setFinalEmail(email);
-  }, []);
 
-  const handleVote = async (type: "up" | "down") => {
-    if (voted) {
-      setShowModal(true);
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/reply-rating", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ replyId, email: finalEmail, type }),
-      });
-
-      if (res.ok) {
-        setVoted(type);
-        if (type === "up") setUpVotes(prev => prev + 1);
-        else setDownVotes(prev => prev + 1);
-
-        // ✅ Зберігаємо локально, щоб після reload була підсвітка
-        const storedVotes = localStorage.getItem("votedReplies");
-        let parsedVotes: Record<string, "up" | "down"> = {};
-        try {
-          parsedVotes = storedVotes ? JSON.parse(storedVotes) : {};
-        } catch {}
-
-        parsedVotes[replyId] = type;
-        localStorage.setItem("votedReplies", JSON.stringify(parsedVotes));
-      } else if (res.status === 409) {
-        setShowModal(true);
-      } else {
-        const errText = await res.text();
-        console.error("Vote error", res.status, errText);
+    // ✅ Перевіряємо локально, чи голосував
+    const storedVotes = localStorage.getItem("votedReplies");
+    if (storedVotes) {
+      try {
+        const parsedVotes = JSON.parse(storedVotes);
+        if (parsedVotes[replyId]) {
+          setVoted(parsedVotes[replyId]);
+        }
+      } catch (err) {
+        console.error("Failed to parse votedReplies", err);
       }
-    } catch (err) {
-      console.error("Vote error:", err);
     }
-  };
+  }, [replyId]);
+
+const handleVote = async (type: "up" | "down") => {
+  if (voted) {
+    setShowModal(true);
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/reply-rating", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ replyId, email: finalEmail, type }),
+    });
+
+    if (res.ok) {
+      setVoted(type);
+
+      // ✅ Оновлюємо локальний лічильник
+      if (type === "up") {
+        rating.up += 1;
+      } else {
+        rating.down += 1;
+      }
+
+      // ✅ Зберігаємо в localStorage
+      const storedVotes = localStorage.getItem("votedReplies");
+      let parsedVotes: Record<string, "up" | "down"> = {};
+      try {
+        parsedVotes = storedVotes ? JSON.parse(storedVotes) : {};
+      } catch {}
+
+      parsedVotes[replyId] = type;
+      localStorage.setItem("votedReplies", JSON.stringify(parsedVotes));
+    } else if (res.status === 409) {
+      setShowModal(true);
+    } else {
+      const errText = await res.text();
+      console.error("Vote error", res.status, errText);
+    }
+  } catch (err) {
+    console.error("Vote error:", err);
+  }
+};
+
 
   return (
     <>
@@ -101,7 +125,7 @@ export default function ReplyRatingBlock({ replyId, allRatings }: Props) {
             voted === "up" ? "bg-green-200" : "bg-white"
           } border`}
         >
-          👍 {upVotes}
+          👍 {rating.up}
         </button>
         <button
           onClick={() => handleVote("down")}
@@ -109,7 +133,7 @@ export default function ReplyRatingBlock({ replyId, allRatings }: Props) {
             voted === "down" ? "bg-red-200" : "bg-white"
           } border`}
         >
-          👎 {downVotes}
+          👎 {rating.down}
         </button>
       </div>
 
@@ -129,4 +153,3 @@ export default function ReplyRatingBlock({ replyId, allRatings }: Props) {
     </>
   );
 }
-
