@@ -399,14 +399,15 @@ useEffect(() => {
   className="w-full h-full object-contain"
 />
           <span
-  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-900"
+  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-800 text-[13px] sm:text-[14px] font-bold"
   style={{
-    fontSize: "16px",
-    fontWeight: 600,
     transform: "translate(-50%, -50%) scaleX(0.82) scaleY(1.35)",
     letterSpacing: "-0.03em",
     fontFamily: "'Inter', sans-serif",
     whiteSpace: "nowrap",
+    maxWidth: "90%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   }}
 >{plateCode}</span>
         </div>

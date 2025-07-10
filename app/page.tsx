@@ -397,18 +397,19 @@ useEffect(() => {
     />
     <div className="absolute inset-0 flex items-center justify-center">
       <span
-  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-800"
+  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-800 text-[13px] sm:text-[20px] font-bold"
   style={{
-    fontSize: "22px",
-    fontWeight: 600,
     transform: "translate(-50%, -50%) scaleX(0.82) scaleY(1.35)",
     letterSpacing: "-0.03em",
     fontFamily: "'Inter', sans-serif",
     whiteSpace: "nowrap",
+    maxWidth: "90%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   }}
 >
-        {c.plate}
-      </span>
+  {c.plate}
+</span>
     </div>
   </div>
 </Link>
