@@ -20,7 +20,7 @@ export default function DriverRatingBlock({ plate, province, email: propEmail }:
   const [showModal, setShowModal] = useState(false);
   const [finalEmail, setFinalEmail] = useState("");
 
-  // ✅ Один єдиний useEffect
+  // ✅ Підготовка email і перевірка localStorage
   useEffect(() => {
     let email = propEmail;
 
@@ -44,9 +44,19 @@ export default function DriverRatingBlock({ plate, province, email: propEmail }:
     }
 
     setFinalEmail(email);
-  }, [propEmail]);
 
-  // ✅ Завантаження рейтингу
+    // ✅ Підвантажити локальний голос
+    const storedVotes = localStorage.getItem("votedDrivers");
+    if (storedVotes) {
+      const parsed = JSON.parse(storedVotes);
+      const key = `${province}-${plate}`;
+      if (parsed[key]) {
+        setVoted(parsed[key]);
+      }
+    }
+  }, [propEmail, plate, province]);
+
+  // ✅ Завантаження рейтингу з API
   useEffect(() => {
     if (!finalEmail) return;
 
@@ -59,7 +69,15 @@ export default function DriverRatingBlock({ plate, province, email: propEmail }:
         const data = await res.json();
         setUpVotes(data.up || 0);
         setDownVotes(data.down || 0);
-        if (data.userVote) setVoted(data.userVote);
+
+        // ✅ Якщо з бази, то лише якщо не було в localStorage
+        const storedVotes = localStorage.getItem("votedDrivers");
+        const key = `${province}-${plate}`;
+        const localVote = storedVotes ? JSON.parse(storedVotes)[key] : null;
+
+        if (!localVote && data.userVote) {
+          setVoted(data.userVote);
+        }
       } catch (err) {
         console.error("Load driver rating error:", err);
       }
@@ -85,6 +103,13 @@ export default function DriverRatingBlock({ plate, province, email: propEmail }:
         if (type === "up") setUpVotes((prev) => prev + 1);
         else setDownVotes((prev) => prev + 1);
         setVoted(type);
+
+        // ✅ Зберегти в localStorage
+        const key = `${province}-${plate}`;
+        const storedVotes = localStorage.getItem("votedDrivers");
+        const parsed = storedVotes ? JSON.parse(storedVotes) : {};
+        parsed[key] = type;
+        localStorage.setItem("votedDrivers", JSON.stringify(parsed));
       } else if (res.status === 409) {
         setShowModal(true);
       } else {
