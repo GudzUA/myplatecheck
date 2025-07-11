@@ -50,7 +50,8 @@ export default function RatingBlock({ commentId, allRatings }: Props) {
     setFinalEmail(email);
   }, []);
 
-  useEffect(() => {
+  // 1. Якщо є allRatings — витягуємо з нього
+useEffect(() => {
   if (allRatings && allRatings[commentId]) {
     const data = allRatings[commentId];
     setUpVotes(data.up);
@@ -58,15 +59,20 @@ export default function RatingBlock({ commentId, allRatings }: Props) {
     if (data.userVote === "up" || data.userVote === "down") {
       setVoted(data.userVote);
     }
-  } else {
-    // fallback на локальний votedComments
-    const votedComments = JSON.parse(localStorage.getItem("votedComments") || "{}");
-    const vote = votedComments[commentId];
+  }
+}, [commentId, allRatings]);
+
+// 2. Якщо allRatings немає — fallback з localStorage
+useEffect(() => {
+  const votedComments = JSON.parse(localStorage.getItem("votedComments") || "{}");
+  const vote = votedComments[commentId];
+  if (!allRatings || !allRatings[commentId]) {
     if (vote === "up" || vote === "down") {
       setVoted(vote);
     }
   }
-}, [commentId, allRatings, finalEmail]);
+}, [commentId, allRatings]);
+
 
 
   const handleVote = async (type: "up" | "down") => {
