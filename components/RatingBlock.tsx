@@ -12,20 +12,28 @@ type RatingData = {
 
 type Props = {
   commentId: string;
-  allRatings?: Record<string, RatingData>;
+  allRatings: Record<string, RatingData>;
 };
 
 export default function RatingBlock({ commentId, allRatings }: Props) {
   const { lang } = useLanguage();
   const t = translations[lang];
 
-  const [upVotes, setUpVotes] = useState(0);
-  const [downVotes, setDownVotes] = useState(0);
   const [voted, setVoted] = useState<"up" | "down" | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [finalEmail, setFinalEmail] = useState("guest@myplatecheck.com");
+  const [finalEmail, setFinalEmail] = useState("");
+
+  const rating = allRatings[commentId] || { up: 0, down: 0 };
 
   useEffect(() => {
+    if (rating.userVote) {
+      setVoted(rating.userVote);
+    }
+  }, [rating.userVote]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
     let email = "guest@myplatecheck.com";
     const stored = localStorage.getItem("user");
 
@@ -48,29 +56,19 @@ export default function RatingBlock({ commentId, allRatings }: Props) {
     }
 
     setFinalEmail(email);
-  }, []);
 
-  useEffect(() => {
-  if (allRatings && allRatings[commentId]) {
-    const data = allRatings[commentId];
-    setUpVotes(data.up);
-    setDownVotes(data.down);
-    if (data.userVote === "up" || data.userVote === "down") {
-      setVoted(data.userVote);
+    const storedVotes = localStorage.getItem("votedComments");
+    if (storedVotes) {
+      try {
+        const parsedVotes = JSON.parse(storedVotes);
+        if (parsedVotes[commentId]) {
+          setVoted(parsedVotes[commentId]);
+        }
+      } catch (err) {
+        console.error("Failed to parse votedComments", err);
+      }
     }
-  } else {
-    const votedComments = JSON.parse(localStorage.getItem("votedComments") || "{}");
-    const vote = votedComments[commentId];
-    if (vote === "up" || vote === "down") {
-      setVoted(vote);
-      // ✅ локально оновлюємо лічильник
-      if (vote === "up") setUpVotes((prev) => prev + 1);
-      else setDownVotes((prev) => prev + 1);
-    }
-  }
-}, [commentId, allRatings, finalEmail]);
-
-
+  }, [commentId]);
 
   const handleVote = async (type: "up" | "down") => {
     if (voted) {
@@ -82,29 +80,34 @@ export default function RatingBlock({ commentId, allRatings }: Props) {
       const res = await fetch("/api/comment-rating", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          commentId,
-          type,
-          email: finalEmail,
-        }),
+        body: JSON.stringify({ commentId, email: finalEmail, type }),
       });
 
-      if (res.status === 400 || res.status === 409) {
+      if (res.ok) {
+        setVoted(type);
+
+        if (type === "up") {
+          rating.up += 1;
+        } else {
+          rating.down += 1;
+        }
+
+        const storedVotes = localStorage.getItem("votedComments");
+        let parsedVotes: Record<string, "up" | "down"> = {};
+        try {
+          parsedVotes = storedVotes ? JSON.parse(storedVotes) : {};
+        } catch {}
+
+        parsedVotes[commentId] = type;
+        localStorage.setItem("votedComments", JSON.stringify(parsedVotes));
+      } else if (res.status === 409) {
         setShowModal(true);
-        return;
+      } else {
+        const errText = await res.text();
+        console.error("Vote error", res.status, errText);
       }
-
-      if (!res.ok) throw new Error("Vote failed");
-
-      if (type === "up") setUpVotes((prev) => prev + 1);
-      else setDownVotes((prev) => prev + 1);
-      setVoted(type);
-
-      const votedComments = JSON.parse(localStorage.getItem("votedComments") || "{}");
-      votedComments[commentId] = type;
-      localStorage.setItem("votedComments", JSON.stringify(votedComments));
     } catch (err) {
-      console.error("❌ Vote error:", err);
+      console.error("Vote error:", err);
     }
   };
 
@@ -116,20 +119,20 @@ export default function RatingBlock({ commentId, allRatings }: Props) {
           onClick={() => handleVote("up")}
           className={`px-1 py-0.5 rounded ${voted === "up" ? "bg-green-200" : "bg-white"} border`}
         >
-          👍 {upVotes}
+          👍 {rating.up}
         </button>
         <button
           onClick={() => handleVote("down")}
           className={`px-1 py-0.5 rounded ${voted === "down" ? "bg-red-200" : "bg-white"} border`}
         >
-          👎 {downVotes}
+          👎 {rating.down}
         </button>
       </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
           <div className="bg-white p-4 rounded shadow-md text-center">
-            <p className="text-sm">{t.already_voted}</p>
+            <p className="text-xs">{t.already_voted}</p>
             <button
               onClick={() => setShowModal(false)}
               className="mt-3 px-4 py-1 bg-blue-600 text-white rounded text-sm"
