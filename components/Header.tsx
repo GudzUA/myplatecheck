@@ -55,16 +55,15 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  if (!user) return;
+  if (!user || user.email.startsWith("guest_")) return; // ⛔️ Не перевіряємо гостей
 
   const checkUser = async () => {
     try {
       const res = await fetch(`/api/auth/check-user?email=${user.email}`);
-if (res.status === 404) {
-
+      if (res.status === 404) {
         localStorage.removeItem("user");
         setUser(null);
-        window.location.reload(); // або router.push("/login") — якщо ти хочеш явно
+        window.location.reload();
       }
     } catch (err) {
       console.error("Error checking user existence", err);

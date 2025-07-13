@@ -329,38 +329,6 @@ useEffect(() => {
 }, [comments]);
 
 
-useEffect(() => {
-  let user = localStorage.getItem("user");
-    if (!user) {
-  const guestId = `guest_${crypto.randomUUID()}@myplatecheck.com`;
-  user = JSON.stringify({ email: guestId, type: "guest" });
-  localStorage.setItem("user", user);
-}
-
-  try {
-    const parsed = JSON.parse(user);
-    const type = parsed?.type || (parsed?.pro ? "pro" : "free");
-    setUserType(type);
-
-    if (parsed?.email) {
-      const email = parsed.email.toLowerCase();
-      const rawUsers = localStorage.getItem("users");
-      const users = rawUsers ? JSON.parse(rawUsers) : {};
-
-      users[email] = {
-        badges: [
-          ...(parsed.pro || parsed.type === "pro" ? ["pro"] : [])
-        ]
-      };
-
-      localStorage.setItem("users", JSON.stringify(users));
-    }
-
-  } catch {
-    setUserType("guest");
-  }
-}, []);
-
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
  {userType !== "pro" && <BannerAd />}

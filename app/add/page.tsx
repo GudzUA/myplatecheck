@@ -58,7 +58,6 @@ export default function AddCommentPage() {
   const [modalMessage, setModalMessage] = useState<string | null>(null);
   const [alertMode, setAlertMode] = useState<"login" | "upgrade" | null>(null);
   const [showLogin, setShowLogin] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [userType, setUserType] = useState<"guest" | "free" | "pro">("guest");
 
@@ -88,24 +87,6 @@ async function uploadBase64Image(base64: string, type: string): Promise<string |
     return null;
   }
 }
-
-useEffect(() => {
-  const user = localStorage.getItem("user");
-
-  if (user) {
-    try {
-      const parsed = JSON.parse(user);
-      const type = parsed?.type || (parsed?.pro ? "pro" : "free");
-      setUserType(type);
-    } catch {
-    }
-  } else {
-    setUserType("guest"); // 👈 додаємо це
-  }
-
-  setMounted(true); // 👈 тепер виконується завжди
-}, []);
-
 
 const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
   if (!e.target.files) return;
@@ -204,6 +185,9 @@ const uploadedMedia: MediaItem[] = await Promise.all(
   })
 );
 
+    const parsed = storedUser ? JSON.parse(storedUser) : null;
+    const userType = parsed?.type || (parsed?.pro ? "pro" : "free") || "guest";
+
     const expandedVideoUrl = await expandTikTokUrl(videoUrl.trim());
     const cleanUrl = expandedVideoUrl?.split("?")[0]; 
     const currentUser = JSON.parse(localStorage.getItem("user") || "null");
@@ -240,6 +224,8 @@ const userComments = allComments.filter(
   }
 }
 
+const guestId = localStorage.getItem("guestId") || "unknown";
+
   const newComment: Comment = {
   id: newId,
   plate: normalizedPlate,
@@ -254,7 +240,7 @@ const userComments = allComments.filter(
     : currentUser?.login
     ? "registered"
     : "guest",
-  email: currentUser?.email || undefined,
+  email: currentUser?.email || `guest_${guestId}@myplatecheck.com`,
   badges: Array.isArray(currentUser?.badges)
     ? currentUser.badges
     : currentUser?.pro
@@ -295,13 +281,9 @@ await fetch("/api/comments", {
   }
 };
 
-  if (!mounted) return null; 
-
   return (
     <main className="w-full min-h-screen max-w-xl mx-auto px-4 sm:px-6 py-6">
       <h1 className="text-3xl font-bold text-blue-800 mb-8 text-center">{t.add_comment}</h1>
-
-      {mounted && (
       <form onSubmit={handleSubmit}
         className="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-xl space-y-4 sm:space-y-6 text-sm sm:text-base">
         <div>

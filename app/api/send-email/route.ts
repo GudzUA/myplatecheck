@@ -7,8 +7,8 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, subject, message } = await req.json();
-    const lang = req.headers.get("accept-language")?.split(",")[0]?.split("-")[0] || "ua";
+    const { email, subject, message, lang: langFromBody } = await req.json();
+    const lang = langFromBody || req.headers.get("accept-language")?.split(",")[0]?.split("-")[0] || "EN";   
 
     // ⛔️ Не надсилаємо email, якщо гість
     if (email.startsWith("guest_") || email === "guest@myplatecheck.com") {
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 const unsubscribeUrl = `https://myplatecheck.vercel.app/api/unsubscribe?token=${token}`;
 
 // 👇 Переклад повідомлення про відписку
-const t = translations[lang.toUpperCase() as "UA" | "EN" | "FR"] || translations.UA;
+const t = translations[lang.toUpperCase() as "UA" | "EN" | "FR"] || translations.EN;
 const unsubscribeNotice = t.unsubscribe_notice?.replace("{url}", unsubscribeUrl) || `If you no longer want to receive these emails, click here: ${unsubscribeUrl}`;
 
 // 👇 Повне HTML повідомлення
@@ -72,67 +72,70 @@ await transporter.sendMail({
 }
 
 function getTranslatedSubject(subject: string, lang: string): string {
+  const l = lang.toLowerCase();
+
   if (subject === "comment_rejected") {
-    if (lang === "fr") return "Votre commentaire a été rejeté ❌";
-    if (lang === "en") return "Your comment was rejected ❌";
+    if (l === "fr") return "Votre commentaire a été rejeté ❌";
+    if (l === "en") return "Your comment was rejected ❌";
     return "Ваш коментар відхилено ❌";
   }
   if (subject === "comment_approved") {
-    if (lang === "fr") return "Votre commentaire a été publié ✅";
-    if (lang === "en") return "Your comment was published ✅";
+    if (l === "fr") return "Votre commentaire a été publié ✅";
+    if (l === "en") return "Your comment was published ✅";
     return "Ваш коментар опубліковано ✅";
   }
   return subject;
 }
 
 function getTranslatedMessage(message: string, lang: string): string {
-  // якщо є причина відхилення
+  const l = lang.toLowerCase();
+
   if (message.startsWith("REJECTED:")) {
     const [, plate, reason] = message.match(/^REJECTED:(.+?):(.+)$/) || [];
 
     if (!plate || !reason) {
-      return lang === "fr"
+      return l === "fr"
         ? "Votre commentaire a été rejeté sans raison précisée."
-        : lang === "en"
+        : l === "en"
         ? "Your comment was rejected without a specified reason."
         : "Ваш коментар було відхилено без вказаної причини.";
     }
 
-    if (lang === "fr") {
-      return `Votre commentaire sur la plaque ${plate} a été rejeté par le modérateur. Raison : ${getReasonText(reason, lang)}`;
+    if (l === "fr") {
+      return `Votre commentaire sur la plaque ${plate} a été rejeté par le modérateur. Raison : ${getReasonText(reason, l)}`;
     }
-    if (lang === "en") {
-      return `Your comment on plate ${plate} was rejected by the moderator. Reason: ${getReasonText(reason, lang)}`;
+    if (l === "en") {
+      return `Your comment on plate ${plate} was rejected by the moderator. Reason: ${getReasonText(reason, l)}`;
     }
-    return `Ваш коментар до номеру ${plate} було відхилено модератором. Причина: ${getReasonText(reason, lang)}`;
+    return `Ваш коментар до номеру ${plate} було відхилено модератором. Причина: ${getReasonText(reason, l)}`;
   }
 
-  // якщо схвалено
   const plate = message;
-  if (lang === "fr") return `Votre commentaire sur la plaque ${plate} a été publié avec succès. Merci !`;
-  if (lang === "en") return `Your comment on plate ${plate} was successfully published. Thank you!`;
+  if (l === "fr") return `Votre commentaire sur la plaque ${plate} a été publié avec succès. Merci !`;
+  if (l === "en") return `Your comment on plate ${plate} was successfully published. Thank you!`;
   return `Ваш коментар до номеру ${plate} успішно опубліковано. Дякуємо!`;
 }
 
 function getReasonText(reason: string, lang: string): string {
+  const l = lang.toLowerCase();
+
   if (reason === "image_violation") {
-    if (lang === "fr") return "Violation d'image (visages, informations privées)";
-    if (lang === "en") return "Image violation (faces, private info)";
+    if (l === "fr") return "Violation d'image (visages, informations privées)";
+    if (l === "en") return "Image violation (faces, private info)";
     return "Порушення у зображенні (обличчя, приватна інформація)";
   }
 
   if (reason === "inappropriate_text") {
-    if (lang === "fr") return "Texte offensant ou inapproprié";
-    if (lang === "en") return "Offensive or inappropriate text";
+    if (l === "fr") return "Texte offensant ou inapproprié";
+    if (l === "en") return "Offensive or inappropriate text";
     return "Образливий або неприйнятний текст";
   }
 
   if (reason === "spam") {
-    if (lang === "fr") return "Spam ou contenu promotionnel";
-    if (lang === "en") return "Spam or promotional content";
+    if (l === "fr") return "Spam ou contenu promotionnel";
+    if (l === "en") return "Spam or promotional content";
     return "Спам або рекламний вміст";
   }
 
-  // fallback
   return reason;
 }

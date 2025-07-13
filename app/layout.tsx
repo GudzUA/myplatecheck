@@ -2,6 +2,8 @@ import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { LanguageProvider } from "../context/LanguageContext";
+import GuestInitializer from "../components/GuestInitializer";
+
 
 export const metadata = {
   title: "MyPlateCheck",
@@ -18,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen flex flex-col max-w-screen overflow-x-hidden">
         <LanguageProvider>
+          <GuestInitializer />
           <Header />
           <main className="flex-grow">{children}</main>
           <Footer />
