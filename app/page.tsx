@@ -74,6 +74,26 @@ const fetchedLangsRef = useRef<Set<string>>(new Set());
   const end = start + COMMENTS_PER_PAGE;
   const paginatedComments = comments.slice(start, end);
 
+useEffect(() => {
+  const stored = localStorage.getItem("user");
+  if (stored) {
+    try {
+      const parsed = JSON.parse(stored);
+      const type = parsed?.pro
+        ? "pro"
+        : parsed?.login
+        ? "free"
+        : "guest";
+      setUserType(type);
+    } catch {
+      setUserType("guest");
+    }
+  } else {
+    setUserType("guest");
+  }
+}, []);
+
+
 function getEmbedHTML(url: string): string | null {
   if (!url) return null;
 
@@ -331,7 +351,7 @@ useEffect(() => {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
- {userType !== "pro" && <BannerAd />}
+ {userType !== "guest" && <BannerAd />}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="w-full lg:col-span-2 space-y-6">
           <h2 className="text-3xl font-bold text-blue-900 text-center mb-6">{t.latest_comments}</h2>

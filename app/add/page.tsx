@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import imageCompression from "browser-image-compression";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -59,7 +59,6 @@ export default function AddCommentPage() {
   const [alertMode, setAlertMode] = useState<"login" | "upgrade" | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [userType, setUserType] = useState<"guest" | "free" | "pro">("guest");
 
 
 async function uploadBase64Image(base64: string, type: string): Promise<string | null> {
@@ -152,7 +151,7 @@ const handleRemoveImage = (index: number) => {
       ? allComments.filter((c) => !c.parentId && user.login === c.author).length
       : allComments.filter((c) => !c.parentId && c.author === "Гість").length;
 
-    if (!storedUser && newCommentCount >= 100) {
+    if (!storedUser && newCommentCount >= 1) {
       setModalMessage(t.login_required_to_comment);
       setAlertMode("login");
       return;
@@ -184,9 +183,6 @@ const uploadedMedia: MediaItem[] = await Promise.all(
     };
   })
 );
-
-    const parsed = storedUser ? JSON.parse(storedUser) : null;
-    const userType = parsed?.type || (parsed?.pro ? "pro" : "free") || "guest";
 
     const expandedVideoUrl = await expandTikTokUrl(videoUrl.trim());
     const cleanUrl = expandedVideoUrl?.split("?")[0]; 
@@ -446,7 +442,7 @@ await fetch("/api/comments", {
         )}
 
       {showLogin && <LoginRegisterModal onClose={() => setShowLogin(false)} />}
-       <p className="text-xs text-gray-500">User type: {userType}</p>
+       <p className="text-xs text-gray-500"></p>
         <button
           type="submit"
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -454,7 +450,7 @@ await fetch("/api/comments", {
           {t.save_comment}
         </button>
       </form>
-      )}
+      
     </main>
   );
 }
