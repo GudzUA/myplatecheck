@@ -255,6 +255,8 @@ await fetch("/api/comments", {
   body: JSON.stringify(newComment),
 });
 
+const updatedComments = [...allComments, newComment];
+localStorage.setItem("comments", JSON.stringify(updatedComments));
 
     setModalMessage(t.comment_saved);
     router.push("/");
