@@ -141,13 +141,11 @@ const handleRemoveImage = (index: number) => {
     console.log("submit attempt");
 
     const storedUser = localStorage.getItem("user");
-    const allCommentsRaw = localStorage.getItem("comments");
-    const allComments: Comment[] = allCommentsRaw ? JSON.parse(allCommentsRaw) : [];
 
     const user = storedUser ? JSON.parse(storedUser) : null;
-const isPro = user?.pro === true;
-const isRegistered = !!user?.login;
-const isGuest = !isRegistered && !isPro;
+    const isPro = user?.pro === true;
+    const isRegistered = !!user?.login;
+    const isGuest = !isRegistered && !isPro;
 
 // Витягуємо всі коментарі з localStorage
 const allCommentsRaw = localStorage.getItem("comments");
