@@ -288,6 +288,29 @@ const handleReplySubmit = async (parentId: string) => {
     return;
   }
 
+  const allCommentsRaw = localStorage.getItem("comments");
+  const allComments: Comment[] = allCommentsRaw ? JSON.parse(allCommentsRaw) : [];
+
+  const isPro = user?.pro === true;
+  const isRegistered = !!user?.login && !user.email?.startsWith("guest_");
+  const isGuest = !isPro && !isRegistered;
+
+  const userReplies = allComments.filter(c =>
+    c.parentId && (c.author === user.login || c.author === user.email)
+  );
+
+  if (isGuest && userReplies.length >= 1) {
+    setModalMessage(t.reply_limit_guest);
+    setAlertMode("login");
+    return;
+  }
+
+  if (isRegistered && !isPro && userReplies.length >= 3) {
+    setModalMessage(t.reply_limit_registered);
+    setAlertMode("upgrade");
+    return;
+  }
+
   const newReply = {
   plate: plateCode.toUpperCase(),
   province: provinceCode.toUpperCase(),

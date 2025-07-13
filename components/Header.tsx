@@ -9,6 +9,7 @@ import LoginRegisterModal from "./LoginRegisterModal";
 import Image from "next/image";
 import { useState, useRef } from "react";
 import { usePathname } from "next/navigation";
+import ModalAlert from "./ModalAlert";
 
 export default function Header() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export default function Header() {
   const [showProvinces, setShowProvinces] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [banner, setBanner] = useState<string | null>(null);
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
+  const [alertMode, setAlertMode] = useState<"login" | "upgrade" | null>(null);
 
 
   // 1. Користувач і mounted
@@ -112,6 +115,30 @@ useEffect(() => {
   const input = plate.trim().toUpperCase().replace(/\s+/g, "");
   if (!input) return;
 
+  const userRaw = localStorage.getItem("user");
+  const user = userRaw ? JSON.parse(userRaw) : null;
+  const email = user?.email || "";
+  const isPro = user?.pro === true;
+  const isGuest = email.startsWith("guest_") || !user;
+  const isRegistered = !isGuest && !isPro;
+
+  const key = "searches";
+  const searchesRaw = localStorage.getItem(key);
+  const searches: string[] = searchesRaw ? JSON.parse(searchesRaw) : [];
+
+  // 🔒 Перевірка обмеження
+  if (isGuest && searches.length >= 1) {
+  setModalMessage(t.search_limit_guest);
+  setAlertMode("login");
+  return;
+}
+
+if (isRegistered && searches.length >= 3) {
+  setModalMessage(t.search_limit_free);
+  setAlertMode("upgrade");
+  return;
+}
+
   try {
     const res = await fetch(`/api/search?plate=${input}`);
     const data = await res.json();
@@ -119,6 +146,8 @@ useEffect(() => {
     if (!res.ok || !data.province) {
       alert(t.not_found);
     } else {
+      // ✅ Зберігаємо пошук у ліміт
+      localStorage.setItem(key, JSON.stringify([...searches, input]));
       router.push(`/plate/${data.province}/${input}`);
     }
   } catch {
@@ -127,6 +156,8 @@ useEffect(() => {
 
   setPlate("");
 };
+
+
 
 const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -393,6 +424,26 @@ const handleMouseLeave = () => {
       </nav>
 
       {showLogin && <LoginRegisterModal onClose={() => setShowLogin(false)} />}
+{modalMessage && (
+  <ModalAlert
+    show={true}
+    title={t.alert_title}
+    message={modalMessage}
+    mode={alertMode ?? undefined}
+    onLogin={() => {
+      setModalMessage(null);
+      setShowLogin(true);
+    }}
+    onUpgrade={() => {
+      setModalMessage(null);
+      router.push("/upgrade");
+    }}
+    onClose={() => {
+      setModalMessage(null);
+      setAlertMode(null);
+    }}
+  />
+)}
     </>
   );
 }

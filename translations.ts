@@ -394,6 +394,10 @@ badge_liker: "Лайкер",
     draw_note: "Участь добровільна. Порушення анулюють участь у розіграші.",
     radio_draw_rules: "Правила розіграшу",
     unsubscribe_notice: "Якщо ви не хочете більше отримувати такі листи, <a href='{url}'>відпишіться тут</a>.",
+    search_limit_guest: "🔒 Гості можуть скористатися пошуком лише один раз. Зареєструйтесь.",
+    search_limit_free: "🔒 Безкоштовні користувачі можуть шукати до 3 разів. Оновіть до PRO для безлімітного пошуку.",
+    reply_limit_guest: "Гості можуть залишити лише одну відповідь",
+    reply_limit_registered: "Зареєстровані користувачі можуть залишити до 3 відповідей. Оновіть до PRO для безліміту.",
 
   },
 
@@ -790,6 +794,10 @@ email_send_error: "Failed to send email. Try again later.",
     draw_note: "Participation is voluntary. Any violation disqualifies the user.",
     radio_draw_rules: "Draw rules",
     unsubscribe_notice: "If you no longer wish to receive these emails, <a href='{url}'>unsubscribe here</a>.",
+    search_limit_guest: "🔒 Guests can only search once. Please register.",
+    search_limit_free: "🔒 Free users can search up to 3 times. Upgrade to PRO for unlimited searches.",
+    reply_limit_guest: "Guests can only post 1 reply. Please log in to continue.",
+    reply_limit_registered: "Free users can only post 3 replies. Upgrade to PRO for unlimited replies.",
 
 },
 
@@ -1186,6 +1194,10 @@ email_send_error: "Échec de l'envoi de l'email. Réessayez plus tard.",
     draw_note: "La participation est volontaire. Toute infraction entraîne la disqualification.",
     radio_draw_rules: "Règles du tirage au sort",
     unsubscribe_notice: "Si vous ne souhaitez plus recevoir ces e-mails, <a href='{url}'>désabonnez-vous ici</a>.",
+    search_limit_guest: "🔒 Les invités peuvent effectuer une seule recherche. Veuillez vous inscrire.",
+    search_limit_free: "🔒 Les utilisateurs gratuits peuvent effectuer jusqu'à 3 recherches. Passez à PRO pour des recherches illimitées.",
+    reply_limit_guest: "Les invités ne peuvent laisser qu'une seule réponse",
+    reply_limit_registered: "Les utilisateurs enregistrés peuvent laisser jusqu'à 3 réponses. Passez à PRO pour un accès illimité.",
 
   }
 };
