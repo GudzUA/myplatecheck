@@ -145,23 +145,32 @@ const handleRemoveImage = (index: number) => {
     const allComments: Comment[] = allCommentsRaw ? JSON.parse(allCommentsRaw) : [];
 
     const user = storedUser ? JSON.parse(storedUser) : null;
-    const isPro = user?.pro === true;
+const isPro = user?.pro === true;
+const isRegistered = !!user?.login;
+const isGuest = !isRegistered && !isPro;
 
-    const newCommentCount = user
-      ? allComments.filter((c) => !c.parentId && user.login === c.author).length
-      : allComments.filter((c) => !c.parentId && c.author === "Гість").length;
+// Витягуємо всі коментарі з localStorage
+const allCommentsRaw = localStorage.getItem("comments");
+const allComments: Comment[] = allCommentsRaw ? JSON.parse(allCommentsRaw) : [];
 
-    if (!storedUser && newCommentCount >= 1) {
-      setModalMessage(t.login_required_to_comment);
-      setAlertMode("login");
-      return;
-    }
+// Рахуємо кількість своїх коментарів (не відповідей)
+const newCommentCount = user
+  ? allComments.filter((c) => !c.parentId && (c.author === user.login || c.author === user.email)).length
+  : allComments.filter((c) => !c.parentId && c.author === "Гість").length;
 
-    if (storedUser && !isPro && newCommentCount >= 100) {
-      setModalMessage(t.comment_limit_pro);
-      setAlertMode("upgrade");
-      return;
-    }
+// 🔴 Гість — максимум 1 коментар
+if (isGuest && newCommentCount >= 1) {
+  setModalMessage(t.login_required_to_comment);
+  setAlertMode("login");
+  return;
+}
+
+// 🟠 Зареєстрований — максимум 3 коментарі
+if (isRegistered && !isPro && newCommentCount >= 3) {
+  setModalMessage(t.comment_limit_pro);
+  setAlertMode("upgrade");
+  return;
+}
 
     if (!plate.trim() || !province || !comment.trim()) {
       setModalMessage(t.fill_all_fields);
