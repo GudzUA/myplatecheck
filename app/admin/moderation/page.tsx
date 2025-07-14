@@ -208,7 +208,7 @@ if (items.length > 0) {
       email: approvedComment.email,
       subject: "comment_approved",
       message: approvedComment.plate,
-      lang: approvedComment.language,
+      lang: approvedComment.language || "EN"
     }),
   });
 }
@@ -232,7 +232,7 @@ if (items.length > 0) {
         email: deletedComment.email,
         subject: "comment_rejected",
         message: `REJECTED:${deletedComment.plate}:${reason}`,
-        lang: deletedComment.language,
+        lang: deletedComment.language || "EN"
       }),
     });
   }

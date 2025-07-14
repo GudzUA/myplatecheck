@@ -23,6 +23,7 @@ export async function GET() {
         pending: true,
         videoUrl: true,
         media: true,
+        language: true,
       },
     });
 

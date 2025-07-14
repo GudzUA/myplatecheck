@@ -138,33 +138,23 @@ const handleRemoveImage = (index: number) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("submit attempt");
-
     const storedUser = localStorage.getItem("user");
-
     const user = storedUser ? JSON.parse(storedUser) : null;
     const isPro = user?.pro === true;
     const isRegistered = !!user?.login;
     const isGuest = !isRegistered && !isPro;
 
-// Витягуємо всі коментарі з localStorage
-const allCommentsRaw = localStorage.getItem("comments");
-const allComments: Comment[] = allCommentsRaw ? JSON.parse(allCommentsRaw) : [];
+const res = await fetch(`/api/comments/count?email=${encodeURIComponent(user?.email || "")}`);
+const data = await res.json();
+const dbCommentCount = data.count || 0;
 
-// Рахуємо кількість своїх коментарів (не відповідей)
-const newCommentCount = user
-  ? allComments.filter((c) => !c.parentId && (c.author === user.login || c.author === user.email)).length
-  : allComments.filter((c) => !c.parentId && c.author === "Гість").length;
-
-// 🔴 Гість — максимум 1 коментар
-if (isGuest && newCommentCount >= 1) {
+if (isGuest && dbCommentCount >= 1) {
   setModalMessage(t.login_required_to_comment);
   setAlertMode("login");
   return;
 }
 
-// 🟠 Зареєстрований — максимум 3 коментарі
-if (isRegistered && !isPro && newCommentCount >= 3) {
+if (isRegistered && !isPro && dbCommentCount >= 3) {
   setModalMessage(t.comment_limit_pro);
   setAlertMode("upgrade");
   return;
