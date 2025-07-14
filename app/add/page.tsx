@@ -35,16 +35,6 @@ type Comment = {
   language: string;
 };
 
-type AppUser = {
-  email: string;
-  login: string;
-  password: string;
-  pro?: boolean;
-  proUntil?: string;
-  usedInitialLimit?: boolean;
-  badges?: string[];
-};
-
 export default function AddCommentPage() {
   const router = useRouter();
   const { lang } = useLanguage();
@@ -184,34 +174,6 @@ const uploadedMedia: MediaItem[] = await Promise.all(
     const expandedVideoUrl = await expandTikTokUrl(videoUrl.trim());
     const cleanUrl = expandedVideoUrl?.split("?")[0]; 
     const currentUser = JSON.parse(localStorage.getItem("user") || "null");
-
-if (currentUser) {
-
-  const wasPro = currentUser.proUntil && new Date(currentUser.proUntil) < new Date();
-  const isPro = currentUser.pro === true;
-
-  if (!isPro && !wasPro && userComments.length >= 3) {
-    alert("Ви використали всі безплатні коментарі. Оновіть до PRO.");
-    return;
-  }
-
-  if (wasPro && !currentUser.usedInitialLimit && userComments.length >= 3) {
-    alert("Ваш PRO закінчився. Ви вже використали безплатні коментарі.");
-    return;
-  }
-
-  // Якщо закінчився PRO, ставимо прапорець
-  if (wasPro && !currentUser.usedInitialLimit) {
-    currentUser.usedInitialLimit = true;
-    localStorage.setItem("user", JSON.stringify(currentUser));
-
-    const users = JSON.parse(localStorage.getItem("users") || "[]");
-    const updatedUsers = users.map((u: AppUser) =>
-  u.email === currentUser.email ? { ...u, usedInitialLimit: true } : u
-);
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-  }
-}
 
 const guestId = localStorage.getItem("guestId") || "unknown";
 
