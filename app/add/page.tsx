@@ -186,10 +186,6 @@ const uploadedMedia: MediaItem[] = await Promise.all(
     const currentUser = JSON.parse(localStorage.getItem("user") || "null");
 
 if (currentUser) {
-  const allComments = JSON.parse(localStorage.getItem("comments") || "[]");
-const userComments = allComments.filter(
-  (c: Comment) => c.author === currentUser.login || c.author === currentUser.email
-);
 
   const wasPro = currentUser.proUntil && new Date(currentUser.proUntil) < new Date();
   const isPro = currentUser.pro === true;
@@ -251,9 +247,6 @@ await fetch("/api/comments", {
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(newComment),
 });
-
-const updatedComments = [...allComments, newComment];
-localStorage.setItem("comments", JSON.stringify(updatedComments));
 
     setModalMessage(t.comment_saved);
     router.push("/");
