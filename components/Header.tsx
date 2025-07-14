@@ -133,7 +133,7 @@ useEffect(() => {
   return;
 }
 
-if (isRegistered && searches.length >= 3) {
+if (isRegistered && searches.length >= 4) {
   setModalMessage(t.search_limit_free);
   setAlertMode("upgrade");
   return;
@@ -185,7 +185,16 @@ const handleMouseLeave = () => {
         <div className="w-full px-1 sm:px-2 md:px-4 lg:px-8">
           {/* 🖥 Desktop */}
           <div className="hidden md:flex items-center justify-between gap-6">
-            <Link href="/" className="w-[160px] h-auto">
+            <button
+  onClick={() => {
+    if (pathname === "/") {
+      router.refresh(); 
+    } else {
+      router.push("/"); 
+    }
+  }}
+  className="w-[160px] h-auto"
+>
   <Image
     src="/img/logo.png"
     alt="Logo"
@@ -194,7 +203,7 @@ const handleMouseLeave = () => {
     className="w-[170px] h-[50px]"
     priority
   />
-</Link>
+</button>
 
              <ul className="flex flex-row space-x-4 text-[17px] font-semibold tracking-wide uppercase">
               <li><Link href="/add" className="hover:text-blue-300 transition">{t.comments}</Link></li>
@@ -284,7 +293,16 @@ const handleMouseLeave = () => {
           <div className="md:hidden flex flex-col gap-2">
             {/* Line 1: Logo + Search */}
             <div className="flex items-center justify-between gap-2">
-             <Link href="/" className="w-[160px] h-auto cursor-pointer">
+             <button
+  onClick={() => {
+    if (pathname === "/") {
+      router.refresh();
+    } else {
+      router.push("/");
+    }
+  }}
+  className="w-[160px] h-auto cursor-pointer"
+>
   <Image
     src="/img/logo.png"
     alt="Logo"
@@ -293,7 +311,7 @@ const handleMouseLeave = () => {
     className="w-[140px] h-[45px]"
     priority
   />
-</Link>
+</button>
 
               <form onSubmit={handleSearch} className="flex items-center gap-2">
                 <input

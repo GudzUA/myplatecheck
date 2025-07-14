@@ -30,14 +30,14 @@ export async function POST(req: Request) {
 
     const now = new Date();
     const proUntil = new Date(now);
-    proUntil.setDate(now.getDate() + 100); // 100 днів
+    proUntil.setDate(now.getDate() + 30); // 30 днів
 
     await prisma.user.update({
       where: { email },
       data: {
         pro: true,
         proUntil,
-        tariff: "promo-100d",
+        tariff: "promo-30d",
         type: "pro",
       },
     });

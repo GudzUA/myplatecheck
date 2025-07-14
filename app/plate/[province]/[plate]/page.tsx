@@ -326,32 +326,42 @@ const handleReplySubmit = async (parentId: string) => {
 
 };
 
-  try {
-    const res = await fetch("/api/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newReply),
-    });
+try {
+  const res = await fetch("/api/comments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(newReply),
+  });
 
-    if (!res.ok) throw new Error("Не вдалося зберегти відповідь");
+  if (!res.ok) throw new Error("Не вдалося зберегти відповідь");
 
-    const saved: Comment = await res.json();
+  const saved: Comment = await res.json();
 
-    setComments(prev => [...prev, saved]);
-    setReplyMap(prev => ({
-      ...prev,
-      [parentId]: [...(prev[parentId] || []), saved],
-    }));
-    setReplyText("");
-    setShowReplyId(null);
+  setComments(prev => [...prev, saved]);
+  setReplyMap(prev => ({
+    ...prev,
+    [parentId]: [...(prev[parentId] || []), saved],
+  }));
+  setReplyText("");
+  setShowReplyId(null);
 
-    const map = { ...replyDates };
-    map[saved.id] = new Date(saved.createdAt).toLocaleString();
-    setReplyDates(map);
-  } catch (error) {
-    alert("❌ Помилка при збереженні відповіді.");
-    console.error(error);
-  }
+  const map = { ...replyDates };
+  map[saved.id] = new Date(saved.createdAt).toLocaleString();
+  setReplyDates(map);
+
+  // 🆕 Автоматично підвищуємо рейтинг нової відповіді (upvote)
+  setReplyRatings((prev) => ({
+  ...prev,
+  [saved.id]: {
+    up: 0,
+    down: 0,
+  },
+}));
+
+} catch (error) {
+  alert("❌ Помилка при збереженні відповіді.");
+  console.error(error);
+}
 };
 
   const rootComments = comments.filter(c => !c.parentId);
@@ -507,7 +517,7 @@ useEffect(() => {
 
                 {replyMap[c.id]?.length > 0 && (
                <div className="mt-3 space-y-3">
-             {replyMap[c.id].map((reply) => (
+             {[...replyMap[c.id]].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((reply) => (
                    <div
                  key={reply.id}
         className="ml-auto mr-2 w-[92%] bg-white border border-blue-100 px-3 py-1 rounded-lg shadow-sm"

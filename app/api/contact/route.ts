@@ -17,7 +17,8 @@ export async function POST(req: Request) {
 
 await transporter.sendMail({
   from: `"MyPlateCheck" <${process.env.SMTP_USER}>`,
-  to: email || process.env.CONTACT_RECEIVER_EMAIL,
+  to: process.env.CONTACT_RECEIVER_EMAIL,
+  replyTo: email,
   subject: `Контакт з сайту від ${name}`,
   html: `
     <h2>Нове повідомлення з сайту</h2>

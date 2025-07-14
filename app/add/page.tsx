@@ -69,7 +69,6 @@ async function uploadBase64Image(base64: string, type: string): Promise<string |
       return null;
     }
 
-    console.log("✅ Firebase uploaded URL:", data.url);
     return data.url;
   } catch (err) {
     console.error("❌ Error uploading:", err);

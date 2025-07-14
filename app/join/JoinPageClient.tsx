@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { translations } from "@/translations";
 import LoginRegisterModal from "@/components/LoginRegisterModal";
+import ModalAlert from "@/components/ModalAlert";
+
 
 export default function JoinPageClient() {
   const { lang } = useLanguage();
@@ -15,6 +17,7 @@ export default function JoinPageClient() {
   const [showModal, setShowModal] = useState(false);
   const [validCode, setValidCode] = useState(false);
   const [code, setCode] = useState("");
+  const [showAlreadyProModal, setShowAlreadyProModal] = useState(false);
 
   useEffect(() => {
     const paramCode = searchParams.get("code") || "";
@@ -26,7 +29,36 @@ export default function JoinPageClient() {
     }
   }, [searchParams, router]);
 
-  const handleClick = () => setShowModal(true);
+  const handleClick = () => {
+  const stored = localStorage.getItem("user");
+  if (stored) {
+    try {
+      const user = JSON.parse(stored);
+      const payments = user.paymentHistory;
+      const isPro =
+        user?.pro === true ||
+        user?.type === "pro" ||
+        (Array.isArray(payments)
+          ? payments.some(p => ["promo", "manual", "stripe"].includes(p?.type))
+          : ["promo", "manual", "stripe"].includes(payments?.type));
+
+      if (isPro) {
+        setShowAlreadyProModal(true);
+        setTimeout(() => {
+          setShowAlreadyProModal(false);
+          router.push("/");
+        }, 2500);
+        return;
+      }
+    } catch (e) {
+      console.error("❌ Failed to parse user from localStorage:", e);
+    }
+  }
+
+  setShowModal(true);
+};
+
+
 
   return validCode ? (
     <main className="max-w-xl mx-auto px-6 py-12 text-center">
@@ -54,6 +86,18 @@ export default function JoinPageClient() {
           promoCode={code}
         />
       )}
+{showAlreadyProModal && (
+ <ModalAlert
+  show={true}
+  title={t.attention}
+  message={t.must_be_PRO_to_subscribe}
+  mode={undefined}
+  onClose={() => {
+    setShowAlreadyProModal(false);
+    router.push("/");
+  }}
+/>
+)}
     </main>
   ) : null;
 }

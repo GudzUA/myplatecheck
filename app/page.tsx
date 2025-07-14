@@ -351,7 +351,7 @@ useEffect(() => {
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-8">
- {userType !== "guest" && <BannerAd />}
+ {userType !== "pro" && <BannerAd />}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="w-full lg:col-span-2 space-y-6">
           <h2 className="text-3xl font-bold text-blue-900 text-center mb-6">{t.latest_comments}</h2>
