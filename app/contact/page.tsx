@@ -50,7 +50,7 @@ export default function ContactPage() {
 return (
   <>
     <div className="flex justify-center px-4 py-6">
-      <div className="relative w-full max-w-sm bg-white border border-blue-200 rounded-xl shadow-lg p-5 mt-20">
+      <div className="relative w-full max-w-sm bg-white border border-blue-200 rounded-xl shadow-lg p-5 mt-16">
   <button
     onClick={() => window.location.href = "/"}
     className="absolute top-2 right-2 text-gray-400 hover:text-red-600 text-xl font-bold"
