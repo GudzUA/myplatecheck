@@ -54,12 +54,12 @@ useEffect(() => {
   })
     .then((res) => res.json())
     .then((data) => {
-      if (!data.pro && user.pro) {
-        console.log("⚠️ PRO expired, updating localStorage");
-        user.pro = false;
-        localStorage.setItem("user", JSON.stringify(user));
-        window.dispatchEvent(new Event("userUpdated"));
-      }
+      if (user.pro !== data.pro) {
+  console.log("🔁 PRO status changed:", user.pro, "→", data.pro);
+  user.pro = data.pro;
+  localStorage.setItem("user", JSON.stringify(user));
+  window.dispatchEvent(new Event("userUpdated"));
+}
     })
     .catch((e) => console.error("❌ Failed to check PRO status", e));
 }, []);
