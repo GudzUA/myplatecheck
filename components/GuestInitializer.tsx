@@ -38,5 +38,31 @@ export default function GuestInitializer() {
     }
   }, []);
 
+useEffect(() => {
+  const stored = localStorage.getItem("user");
+  if (!stored) return;
+
+  const user = JSON.parse(stored);
+  const email = user?.email;
+
+  if (!email || email.startsWith("guest")) return;
+
+  fetch("/api/user/status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data.pro && user.pro) {
+        console.log("⚠️ PRO expired, updating localStorage");
+        user.pro = false;
+        localStorage.setItem("user", JSON.stringify(user));
+        window.dispatchEvent(new Event("userUpdated"));
+      }
+    })
+    .catch((e) => console.error("❌ Failed to check PRO status", e));
+}, []);
+
   return null;
 }

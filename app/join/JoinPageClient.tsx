@@ -29,12 +29,15 @@ export default function JoinPageClient() {
     }
   }, [searchParams, router]);
 
-  const handleClick = () => {
+  const handleClick = async () => {
   const stored = localStorage.getItem("user");
+
   if (stored) {
     try {
       const user = JSON.parse(stored);
+      const email = user.email || "";
       const payments = user.paymentHistory;
+
       const isPro =
         user?.pro === true ||
         user?.type === "pro" ||
@@ -50,14 +53,43 @@ export default function JoinPageClient() {
         }, 2500);
         return;
       }
-    } catch (e) {
-      console.error("❌ Failed to parse user from localStorage:", e);
+
+      // 🧑‍🦲 Якщо гість — модалка входу
+      if (email.startsWith("guest") || email.includes("guest@") || email.includes("guest_")) {
+        setShowModal(true);
+        return;
+      }
+
+      // ✅ Активація промокоду
+      const res = await fetch("/api/activate-promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, email }),
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        // оновлюємо localStorage
+        const updatedUser = {
+          ...user,
+          pro: true,
+          paymentHistory: [...(user.paymentHistory || []), { type: "promo", code }],
+        };
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        window.dispatchEvent(new Event("userUpdated"));
+        router.push("/account");
+      } else {
+        alert(result.error || "❌ Failed to activate promo code");
+      }
+
+    } catch {
+      setShowModal(true);
     }
+  } else {
+    setShowModal(true);
   }
-
-  setShowModal(true);
 };
-
 
 
   return validCode ? (
