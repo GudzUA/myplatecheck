@@ -63,11 +63,22 @@ useEffect(() => {
   const checkUser = async () => {
     try {
       const res = await fetch(`/api/auth/check-user?email=${user.email}`);
-      if (res.status === 404) {
-        localStorage.removeItem("user");
-        setUser(null);
-        window.location.reload();
-      }
+     if (res.status === 404) {
+  localStorage.removeItem("user");
+  setUser(null);
+  window.location.reload();
+  return;
+}
+
+const data = await res.json();
+
+// 🔁 Якщо pro змінився — оновлюємо localStorage
+if (data?.pro !== user.pro) {
+  const updatedUser = { ...user, pro: data.pro };
+  localStorage.setItem("user", JSON.stringify(updatedUser));
+  setUser(updatedUser);
+}
+
     } catch (err) {
       console.error("Error checking user existence", err);
     }
@@ -107,6 +118,31 @@ useEffect(() => {
   updateCartCount();
   window.addEventListener("storage", updateCartCount);
   return () => window.removeEventListener("storage", updateCartCount);
+}, []);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    const stored = localStorage.getItem("user");
+    if (!stored) return;
+
+    const user = JSON.parse(stored);
+    const email = user?.email;
+    if (!email || email.startsWith("guest")) return;
+
+    fetch(`/api/auth/check-user?email=${email}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (user.pro !== data.pro) {
+          user.pro = data.pro;
+          localStorage.setItem("user", JSON.stringify(user));
+          window.dispatchEvent(new Event("userUpdated"));
+          console.log("🔁 PRO status auto-updated:", data.pro);
+        }
+      })
+      .catch((err) => console.error("❌ Failed to auto-check PRO", err));
+  }, 5 * 60 * 1000); // кожні 5 хв
+
+  return () => clearInterval(interval);
 }, []);
 
 

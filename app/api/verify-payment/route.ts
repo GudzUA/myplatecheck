@@ -22,18 +22,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Payment not confirmed" }, { status: 400 });
     }
 
-    const plan = session?.metadata?.plan;
-    if (!["daily", "monthly", "yearly"].includes(plan as string)) {
-      return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
-      }
+const plan = (session?.metadata?.plan || (session?.metadata?.promo === "true" && "promo")) as string;
 
-    const amount = session.amount_total ? session.amount_total / 100 : 0;
-    const now = new Date();
+if (!["daily", "monthly", "yearly", "promo"].includes(plan)) {
+  return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
+}
 
-    const proUntil = new Date(now);
-    if (plan === "daily") proUntil.setDate(now.getDate() + 1);
-    if (plan === "monthly") proUntil.setMonth(now.getMonth() + 1);
-    if (plan === "yearly") proUntil.setFullYear(now.getFullYear() + 1);
+const amount = session.amount_total ? session.amount_total / 100 : 0;
+const now = new Date();
+
+const proUntil = new Date(now);
+if (plan === "daily") proUntil.setDate(now.getDate() + 1);
+if (plan === "monthly") proUntil.setMonth(now.getMonth() + 1);
+if (plan === "yearly") proUntil.setFullYear(now.getFullYear() + 1);
+if (plan === "promo") proUntil.setDate(now.getDate() + 365); // 1 рік
 
     const user = await prisma.user.findUnique({ where: { email } });
 
