@@ -540,16 +540,31 @@ useEffect(() => {
       </div>
 {fullscreenImage && (
   <div
-    onClick={() => setFullscreenImage(null)}
     className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
+    onClick={() => setFullscreenImage(null)}
   >
-    <NextImage
-      src={fullscreenImage}
-      alt="Full view"
-      width={1200} // або максимальна ширина
-      height={800} // або максимальна висота
-      className="object-contain w-auto h-auto max-w-full max-h-full"
-    />
+    <div className="relative">
+      {/* ❌ Хрестик поверх зображення */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation(); // не закриває все при кліку на хрестик
+          setFullscreenImage(null);
+        }}
+        className="absolute top-2 right-2 bg-black bg-opacity-60 text-white text-2xl rounded-full w-8 h-8 flex items-center justify-center hover:bg-opacity-90"
+        aria-label="Закрити"
+      >
+        &times;
+      </button>
+
+      <NextImage
+        src={fullscreenImage}
+        alt="Full view"
+        width={1200}
+        height={800}
+        onClick={(e) => e.stopPropagation()} // не закриває при кліку на фото
+        className="object-contain w-auto h-auto max-w-[90vw] max-h-[90vh] rounded"
+      />
+    </div>
   </div>
 )}
     </main>

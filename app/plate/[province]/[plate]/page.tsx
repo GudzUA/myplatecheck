@@ -63,7 +63,7 @@ export default function PlatePage() {
   const [ratings, setRatings] = useState<Record<string, RatingData>>({});
   const [replyRatings, setReplyRatings] = useState<Record<string, RatingData>>({});
   const [translationsMap, setTranslationsMap] = useState<Record<string, Record<string, string>>>({});
-
+  const [fullscreenMedia, setFullscreenMedia] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadComments() {
@@ -497,6 +497,7 @@ useEffect(() => {
           width={100}
           height={100}
           className="cursor-pointer rounded hover:shadow-lg hover:scale-105 transition object-contain"
+          onClick={() => setFullscreenMedia(m.url)}
         />
       ) : m.type.startsWith("video") ? (
         <video
@@ -600,8 +601,31 @@ useEffect(() => {
           }}
         />
       )}
-
       {showLogin && <LoginRegisterModal onClose={() => setShowLogin(false)} />}
+{fullscreenMedia && (
+  <div
+    className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center"
+    onClick={() => setFullscreenMedia(null)}
+  >
+    <div className="relative">
+      <button
+        onClick={() => setFullscreenMedia(null)}
+        className="absolute -top-4 -right-4 bg-white text-black rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow-md z-50"
+        onClick={(e) => {
+          e.stopPropagation(); // щоб не закривалось при кліку на кнопку
+          setFullscreenMedia(null);
+        }}
+      >
+        ×
+      </button>
+      <img
+        src={fullscreenMedia}
+        alt="Fullscreen"
+        className="max-w-[90vw] max-h-[90vh] rounded-lg z-40"
+      />
+    </div>
+  </div>
+)}
     </main>
 </TranslationsProvider>
   );
