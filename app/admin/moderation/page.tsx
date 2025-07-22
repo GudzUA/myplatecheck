@@ -114,7 +114,7 @@ useEffect(() => {
       }
     })
     .catch((err) => console.error("❌ Translation fetch error:", err));
-}, [pendingComments, lang]);
+}, [pendingComments, lang, translationsMap]);
 
 
 

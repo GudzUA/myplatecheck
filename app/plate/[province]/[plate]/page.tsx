@@ -608,21 +608,22 @@ useEffect(() => {
     onClick={() => setFullscreenMedia(null)}
   >
     <div className="relative">
-      <button
-        onClick={() => setFullscreenMedia(null)}
-        className="absolute -top-4 -right-4 bg-white text-black rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow-md z-50"
-        onClick={(e) => {
-          e.stopPropagation(); // щоб не закривалось при кліку на кнопку
-          setFullscreenMedia(null);
-        }}
-      >
-        ×
-      </button>
-      <img
-        src={fullscreenMedia}
-        alt="Fullscreen"
-        className="max-w-[90vw] max-h-[90vh] rounded-lg z-40"
-      />
+     <button
+  className="absolute -top-4 -right-4 bg-white text-black rounded-full w-10 h-10 flex items-center justify-center text-2xl shadow-md z-50"
+  onClick={(e) => {
+    e.stopPropagation();
+    setFullscreenMedia(null);
+  }}
+>
+  ×
+</button>
+      <Image
+  src={fullscreenMedia}
+  alt="Fullscreen"
+  width={1000}
+  height={1000}
+  className="max-w-[90vw] max-h-[90vh] rounded-lg z-40 object-contain"
+/>
     </div>
   </div>
 )}
